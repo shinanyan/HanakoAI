@@ -9,6 +9,9 @@ jobs:
   test-and-assemble:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      # 默认 2GB 堆在 CI 上编译 Compose 项目会偶发 OOM（GC overhead limit exceeded）。
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
