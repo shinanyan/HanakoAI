@@ -1,8 +1,18 @@
 # Hanako
 
+> **本仓库是 [zyf2007/HanakoAI](https://github.com/zyf2007/HanakoAI) 的 fork**，在 `v0.0.18-alpha` 的基础上追加了以下改动（开发中，目标版本 `0.0.19-alpha`）：
+>
+> 1. **自动模式答案浮层**：自动模式答完题后，直接在屏幕上显示一张可拖动的小卡片——选择题显示大字答案，文本题显示答案全文并标记「已复制」，「解析 ▾」展开模型的解题思路。可在「设置 → 更多 → 自动模式」关闭或设置自动关闭秒数。
+> 2. **「启动时进入自动模式」开关**：开启后单击主页启动按钮直接进入自动模式，长按改为普通模式；主页提示文案会同步变化。
+> 3. **截图隔离**：开始新一轮截图或进入多图截图前，浮层会同步隐藏，不会被截进下一张图。
+> 4. **文本题连点修复**：文本题答完后单击悬浮球即可直接开始下一题。
+> 5. **CI**：`.github/workflows/build.yml` 每次推送自动跑 `./gradlew test` 与 `./gradlew assembleDebug`，产物在 Actions artifacts 中。
+>
+> 全部改动见 [与上游的对比](https://github.com/shinanyan/HanakoAI/compare/2762037...main)；下文保留上游原始说明。
+
 Hanako 是一个 Android 悬浮窗 AI 客户端，核心用途是截图识题与快速作答。默认助手提示词偏向搜题场景，也可以在应用内改成翻译、总结、阅读辅助等其他用途。
 
-[[Download 0.0.18-alpha](https://github.com/zyf2007/HanakoAI/releases/download/v0.0.18-alpha/app-lite-arm64-v8a-release.apk)]  [[View Release Notes](https://github.com/zyf2007/HanakoAI/releases/tag/v0.0.18-alpha)] [[Telegram](https://t.me/hutao_space)]
+[[Download 0.0.19-alpha (fork · debug)](https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.19-alpha)]  [[View Release Notes](https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.19-alpha)] [[Telegram](https://t.me/hutao_space)]
 
 Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可能短：
 
