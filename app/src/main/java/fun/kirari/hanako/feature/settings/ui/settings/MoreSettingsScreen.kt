@@ -138,7 +138,8 @@ fun MoreSettingsScreen(
                     onOpenNotificationPermission = onOpenNotificationPermission,
                     onToggleStaticMode = onToggleStaticMode,
                     onNavigateStaticVibrationSettings = onNavigateStaticVibrationSettings,
-                    onUpdateTimeoutSeconds = onUpdateTimeoutSeconds
+                    onUpdateTimeoutSeconds = onUpdateTimeoutSeconds,
+                    onUpdateAutomationSettings = onUpdateAutomationSettings
                 )
             }
         }

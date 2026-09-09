@@ -3,6 +3,8 @@ package `fun`.kirari.hanako.feature.overlay.service
 import `fun`.kirari.hanako.feature.overlay.window.BubbleMenuController
 import `fun`.kirari.hanako.feature.overlay.window.BubbleWindowController
 import `fun`.kirari.hanako.feature.overlay.window.PanelWindowController
+import `fun`.kirari.hanako.feature.overlay.window.AnswerOverlayWindowController
+import `fun`.kirari.hanako.feature.overlay.presentation.AnswerOverlayGate
 import `fun`.kirari.hanako.feature.overlay.presentation.OverlayViewModel
 import `fun`.kirari.hanako.feature.overlay.OverlayDependencies
 import `fun`.kirari.hanako.feature.overlay.OverlayDependenciesProvider
@@ -54,6 +56,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     private lateinit var dependencies: OverlayDependencies
     private var bubbleWindowController: BubbleWindowController? = null
     private var panelWindowController: PanelWindowController? = null
+    private var answerOverlayWindowController: AnswerOverlayWindowController? = null
     private var bubbleMenuController: BubbleMenuController? = null
     private var stateObserver: OverlayStateObserver? = null
     private var automationEffectObserver: OverlayAutomationEffectObserver? = null
@@ -129,13 +132,27 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 savedStateRegistryOwner = this,
                 viewModel = overlayViewModel
             )
+            answerOverlayWindowController = AnswerOverlayWindowController(
+                context = this,
+                windowManager = windowManager,
+                scope = serviceScope,
+                lifecycleOwner = this,
+                viewModelStoreOwner = this,
+                savedStateRegistryOwner = this,
+                settingsProvider = { overlayViewModel.uiState.value.settings.automation },
+                onCopy = { overlayViewModel.copyAnswerOverlay(it) },
+                onDismiss = { overlayViewModel.dismissAnswerOverlay() },
+                onOpenResultPanel = { overlayViewModel.openResultPanelFromOverlay() }
+            )
+            AnswerOverlayGate.hideNow = { answerOverlayWindowController?.hideNow() }
             val bubbleController = checkNotNull(bubbleWindowController)
             val panelController = checkNotNull(panelWindowController)
             stateObserver = OverlayStateObserver(
                 scope = serviceScope,
                 viewModel = overlayViewModel,
                 bubbleWindowController = bubbleController,
-                panelWindowController = panelController
+                panelWindowController = panelController,
+                answerOverlayWindowController = checkNotNull(answerOverlayWindowController)
             )
             automationEffectObserver = OverlayAutomationEffectObserver(
                 context = this,
@@ -177,10 +194,13 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     override fun onDestroy() {
+        AnswerOverlayGate.hideNow = {}
         bubbleMenuController?.dismiss()
         bubbleMenuController = null
         panelWindowController?.dismiss()
         panelWindowController = null
+        answerOverlayWindowController?.destroy()
+        answerOverlayWindowController = null
         bubbleWindowController?.destroy()
         bubbleWindowController = null
         stateObserver?.stop()

@@ -50,6 +50,7 @@ fun HeroSection(
     hasOverlayPermission: Boolean,
     captureMethod: ScreenCaptureMethod,
     staticModeEnabled: Boolean,
+    startInAutoMode: Boolean,
     route: ProcessingRoute,
     onSelectRoute: (ProcessingRoute) -> Unit,
     onOpenOverlayPermission: () -> Unit,
@@ -78,6 +79,7 @@ fun HeroSection(
                 hasOverlayPermission = hasOverlayPermission,
                 captureMethod = captureMethod,
                 staticModeEnabled = staticModeEnabled,
+                startInAutoMode = startInAutoMode,
                 onOpenOverlayPermission = onOpenOverlayPermission,
                 onToggleOverlay = onToggleOverlay,
                 onStartAutoMode = onStartAutoMode
@@ -205,6 +207,7 @@ private fun HeroActions(
     hasOverlayPermission: Boolean,
     captureMethod: ScreenCaptureMethod,
     staticModeEnabled: Boolean,
+    startInAutoMode: Boolean,
     onOpenOverlayPermission: () -> Unit,
     onToggleOverlay: (Boolean) -> Unit,
     onStartAutoMode: () -> Unit
@@ -247,17 +250,16 @@ private fun HeroActions(
                     .combinedClickable(
                         enabled = hasOverlayPermission,
                         onClick = {
-                            if (overlayEnabled) {
-                                onToggleOverlay(false)
-                            } else if (staticModeEnabled) {
-                                onStartAutoMode()
-                            } else {
-                                onToggleOverlay(true)
+                            when {
+                                overlayEnabled -> onToggleOverlay(false)
+                                staticModeEnabled -> onStartAutoMode()
+                                startInAutoMode -> onStartAutoMode()
+                                else -> onToggleOverlay(true)
                             }
                         },
                         onLongClick = {
                             if (!overlayEnabled && hasOverlayPermission && !staticModeEnabled) {
-                                onStartAutoMode()
+                                if (startInAutoMode) onToggleOverlay(true) else onStartAutoMode()
                             }
                         }
                     ),
@@ -287,7 +289,8 @@ private fun HeroActions(
             hasOverlayPermission = hasOverlayPermission,
             captureMethod = captureMethod,
             overlayEnabled = overlayEnabled,
-            staticModeEnabled = staticModeEnabled
+            staticModeEnabled = staticModeEnabled,
+            startInAutoMode = startInAutoMode
         )
     }
 }
@@ -297,7 +300,8 @@ private fun HeroHint(
     hasOverlayPermission: Boolean,
     captureMethod: ScreenCaptureMethod,
     overlayEnabled: Boolean,
-    staticModeEnabled: Boolean
+    staticModeEnabled: Boolean,
+    startInAutoMode: Boolean
 ) {
     if (!hasOverlayPermission) {
         Surface(
@@ -327,25 +331,19 @@ private fun HeroHint(
         return
     }
 
+    val modeHint = when {
+        staticModeEnabled -> "静态模式已开启，点击启动直接进入自动模式"
+        startInAutoMode -> "点击启动进入自动模式，长按启动进入普通模式"
+        else -> "点击启动进入普通模式，长按启动进入自动模式"
+    }
     val hint = when {
         captureMethod == ScreenCaptureMethod.MEDIA_PROJECTION &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-            !overlayEnabled -> {
-            if (staticModeEnabled) {
-                "提示：静态模式已开启，点击启动直接进入自动模式；悬浮球双击展开快捷菜单；Android 14+ 首次会弹出截屏授权。"
-            } else {
-                "提示：点击启动进入普通模式，长按启动进入自动模式；悬浮球双击展开快捷菜单；Android 14+ 首次会弹出截屏授权。"
-            }
-        }
+            !overlayEnabled ->
+            "提示：$modeHint；悬浮球双击展开快捷菜单；Android 14+ 首次会弹出截屏授权。"
         captureMethod == ScreenCaptureMethod.SHIZUKU_ADB && !overlayEnabled ->
             "提示：当前使用 Shizuku 路线。启动时会先申请 Shizuku 授权，后续截图走 shell screencap；悬浮球双击展开快捷菜单。"
-        !overlayEnabled -> {
-            if (staticModeEnabled) {
-                "静态模式已开启，点击启动直接进入自动模式；悬浮球双击展开快捷菜单。"
-            } else {
-                "点击启动进入普通模式，长按启动进入自动模式；悬浮球双击展开快捷菜单。"
-            }
-        }
+        !overlayEnabled -> "$modeHint；悬浮球双击展开快捷菜单。"
         else -> null
     }
 

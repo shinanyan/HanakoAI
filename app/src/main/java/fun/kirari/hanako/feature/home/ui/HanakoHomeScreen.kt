@@ -56,6 +56,7 @@ internal fun HanakoHomeScreen(
                 hasOverlayPermission = hasOverlayPermission,
                 captureMethod = settings.screenCaptureMethod,
                 staticModeEnabled = settings.automation.staticModeEnabled,
+                startInAutoMode = settings.automation.startInAutoMode,
                 route = settings.processingRoute,
                 onSelectRoute = onSelectRoute,
                 onOpenOverlayPermission = onOpenOverlayPermission,

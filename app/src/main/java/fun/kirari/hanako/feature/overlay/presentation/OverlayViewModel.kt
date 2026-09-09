@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import `fun`.kirari.hanako.feature.overlay.state.AnswerOverlayContent
 import `fun`.kirari.hanako.feature.overlay.state.BubbleMenuItem
 import `fun`.kirari.hanako.feature.overlay.state.BubbleState
 import `fun`.kirari.hanako.feature.overlay.state.BubbleStateMachine
@@ -19,6 +20,7 @@ import `fun`.kirari.hanako.core.data.ModelSelection
 import `fun`.kirari.hanako.core.data.SettingsRepository
 import `fun`.kirari.hanako.core.debug.AppDebugLogStore
 import `fun`.kirari.hanako.core.network.ProviderModelsApi
+import `fun`.kirari.hanako.platform.clipboard.copyToClipboardWithToast
 import `fun`.kirari.hanako.solve.application.SolveOperations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -108,6 +110,7 @@ internal class OverlayViewModel(
                 autoRunState = if (mode == CaptureLaunchMode.NORMAL) AutoRunState.IDLE else state.autoRunState,
                 autoCopiedLabel = if (mode == CaptureLaunchMode.NORMAL) null else state.autoCopiedLabel,
                 pendingVibrationLetters = if (mode == CaptureLaunchMode.NORMAL) null else state.pendingVibrationLetters,
+                answerOverlay = if (mode == CaptureLaunchMode.NORMAL) null else state.answerOverlay,
                 error = null
             )
         }
@@ -191,8 +194,16 @@ internal class OverlayViewModel(
         autoProcessingController.presentAutomationEffect(result)
     }
 
-    fun onBubbleTappedAfterLettersShown() {
-        interactionController.onBubbleTappedAfterLettersShown()
+    fun copyAnswerOverlay(content: AnswerOverlayContent) {
+        copyToClipboardWithToast(appContext, "Hanako Answer", content.answerText, "已复制")
+    }
+
+    fun dismissAnswerOverlay() {
+        _uiState.update { it.copy(answerOverlay = null) }
+    }
+
+    fun openResultPanelFromOverlay() {
+        _uiState.update { it.copy(sheetVisible = true, sheetMode = OverlaySheetMode.RESULT) }
     }
 
     // 多页截图相关方法

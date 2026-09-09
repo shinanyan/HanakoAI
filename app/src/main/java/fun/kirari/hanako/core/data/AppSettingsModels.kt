@@ -161,7 +161,10 @@ data class AutomationSettings(
     val staticInterLetterGapMs: Int = 1000,
     val bubbleMenuEnabled: Boolean = true,
     val bubbleAppearance: BubbleAppearanceSettings = BubbleAppearanceSettings(),
-    val skipScreenshotEnabled: Boolean = false
+    val skipScreenshotEnabled: Boolean = false,
+    val answerOverlayEnabled: Boolean = true,
+    val answerOverlayAutoDismissSeconds: Int = 0,
+    val startInAutoMode: Boolean = false
 )
 
 @Serializable
@@ -374,6 +377,7 @@ fun AppSettings.normalize(): AppSettings {
 private fun AutomationSettings.normalize(): AutomationSettings {
     return copy(
         autoModeTimeoutSeconds = autoModeTimeoutSeconds.coerceAtLeast(1),
+        answerOverlayAutoDismissSeconds = answerOverlayAutoDismissSeconds.coerceIn(0, 120),
         bubbleAppearance = bubbleAppearance.normalize()
     )
 }

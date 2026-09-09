@@ -11,6 +11,8 @@ import android.util.Log
 import `fun`.kirari.hanako.feature.overlay.state.BubbleEvent
 import `fun`.kirari.hanako.feature.overlay.state.BubbleState
 import `fun`.kirari.hanako.feature.overlay.state.BubbleStateMachine
+import `fun`.kirari.hanako.feature.overlay.state.AnswerOverlayContent
+import `fun`.kirari.hanako.feature.overlay.state.buildAnswerOverlayContent
 import `fun`.kirari.hanako.platform.capture.ScreenCaptureManager
 import `fun`.kirari.hanako.core.model.AutomationActionType
 import `fun`.kirari.hanako.core.model.ProcessingResult
@@ -24,6 +26,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
@@ -48,6 +51,7 @@ internal class AutoProcessingController(
         AppDebugLogStore.i(tag, "processFullScreen start launchMode=${uiState.value.launchMode}")
         activeJob?.cancel()
         val job = scope.launch {
+            val hadOverlay = uiState.value.answerOverlay != null
             uiState.update {
                 it.copy(
                     liveOcrText = "",
@@ -58,10 +62,13 @@ internal class AutoProcessingController(
                     sheetVisible = false,
                     autoRunState = AutoRunState.RUNNING,
                     autoCopiedLabel = null,
-                    pendingVibrationLetters = null
+                    pendingVibrationLetters = null,
+                    answerOverlay = null
                 )
             }
             bubbleStateMachine.dispatch(BubbleEvent.StartProcessing)
+            AnswerOverlayGate.hideNow()
+            if (hadOverlay) delay(AnswerOverlayDismissSettleMs)
 
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -119,6 +126,7 @@ internal class AutoProcessingController(
                 autoRunState = AutoRunState.IDLE,
                 autoCopiedLabel = null,
                 pendingVibrationLetters = null,
+                answerOverlay = null,
                 error = null
             )
         }
@@ -240,6 +248,7 @@ internal class AutoProcessingController(
                         autoRunState = AutoRunState.COMPLETED,
                         autoCopiedLabel = clipboardText,
                         pendingVibrationLetters = null,
+                        answerOverlay = overlayOrNull(result),
                         error = null
                     )
                 }
@@ -257,6 +266,7 @@ internal class AutoProcessingController(
                         autoRunState = AutoRunState.COMPLETED,
                         autoCopiedLabel = null,
                         pendingVibrationLetters = action.text,
+                        answerOverlay = overlayOrNull(result),
                         error = null
                     )
                 }
@@ -282,10 +292,17 @@ internal class AutoProcessingController(
                 autoRunState = AutoRunState.COMPLETED,
                 autoCopiedLabel = null,
                 pendingVibrationLetters = null,
+                answerOverlay = overlayOrNull(result),
                 error = null
             )
         }
         bubbleStateMachine.forceState(BubbleState.Idle)
+    }
+
+    private fun overlayOrNull(result: ProcessingResult): AnswerOverlayContent? {
+        if (uiState.value.launchMode != CaptureLaunchMode.AUTO) return null
+        if (!uiState.value.settings.automation.answerOverlayEnabled) return null
+        return buildAnswerOverlayContent(result)
     }
 
     private fun automationTrace(message: String) {
@@ -294,5 +311,16 @@ internal class AutoProcessingController(
             Log.i(tag, chunk)
             AppDebugLogStore.i(tag, chunk)
         }
+    }
+
+    internal companion object {
+        /**
+         * 截图前隐藏浮层后，留给系统合成器产出新帧的时间。
+         *
+         * 风险来源是帧缓冲而不是协程调度：`MediaProjectionForegroundService.waitForImage()`
+         * 用 `acquireLatestImage()` 取「最新」帧，队列里的旧帧会立即返回，
+         * 那一帧可能还带着答案浮层。所以这里等的是产帧时间，不是等协程切换。
+         */
+        const val AnswerOverlayDismissSettleMs = 120L
     }
 }

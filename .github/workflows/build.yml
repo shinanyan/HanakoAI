@@ -1,0 +1,99 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-and-assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      - name: Print environment
+        run: |
+          java -version
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls "$ANDROID_SDK_ROOT/platforms"
+          ls "$ANDROID_SDK_ROOT/build-tools"
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Restore stable CI debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ci-keystore
+          key: hanako-ci-debug-keystore-v1
+
+      - name: Ensure stable CI debug keystore
+        run: |
+          mkdir -p ci-keystore
+          if [ ! -f ci-keystore/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ci-keystore/debug.keystore \
+              -storepass hanako-ci -keypass hanako-ci -alias hanakoci \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Hanako CI Debug"
+            echo "generated new CI debug keystore"
+          else
+            echo "reusing cached CI debug keystore (stable signature)"
+          fi
+
+      - name: Unit tests
+        run: ./gradlew test --stacktrace --no-daemon
+
+      - name: Assemble debug
+        run: |
+          ./gradlew assembleDebug --stacktrace --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/ci-keystore/debug.keystore" \
+            -Pandroid.injected.signing.store.password=hanako-ci \
+            -Pandroid.injected.signing.key.alias=hanakoci \
+            -Pandroid.injected.signing.key.password=hanako-ci
+
+      - name: Stash normal debug APKs
+        run: |
+          mkdir -p ci-artifacts/normal
+          cp -r app/build/outputs/apk/* ci-artifacts/normal/
+
+      - name: Assemble debug with in-app debug logs
+        run: |
+          ./gradlew assembleDebug -PhanakoShowDebugLogs=true -PhanakoVerboseLlmLogs=true --stacktrace --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/ci-keystore/debug.keystore" \
+            -Pandroid.injected.signing.store.password=hanako-ci \
+            -Pandroid.injected.signing.key.alias=hanakoci \
+            -Pandroid.injected.signing.key.password=hanako-ci
+
+      - name: Stash logging debug APKs
+        run: |
+          mkdir -p ci-artifacts/logging
+          cp -r app/build/outputs/apk/* ci-artifacts/logging/
+
+      - name: Upload debug APKs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apks
+          path: ci-artifacts/**
+          if-no-files-found: warn
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/**
+          if-no-files-found: warn

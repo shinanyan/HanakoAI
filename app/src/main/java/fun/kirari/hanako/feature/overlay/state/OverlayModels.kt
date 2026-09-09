@@ -37,5 +37,6 @@ internal data class OverlayUiState(
     val autoRunState: AutoRunState = AutoRunState.IDLE,
     val autoCopiedLabel: String? = null,
     val pendingVibrationLetters: String? = null,
+    val answerOverlay: AnswerOverlayContent? = null,
     val bubbleState: BubbleState = BubbleState.Idle
 )

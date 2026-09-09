@@ -2,7 +2,9 @@ package `fun`.kirari.hanako.core.data
 
 import `fun`.kirari.hanako.core.model.ProcessingResult
 import `fun`.kirari.hanako.core.model.ProcessingRoute
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -100,6 +102,39 @@ class AppModelsTest {
         assertEquals(0f, normalized.automation.bubbleAppearance.letterOpacity, 0f)
         assertEquals(100f, normalized.automation.bubbleAppearance.overallOpacity, 0f)
         assertEquals("http://example.com", normalized.kirari.serverUrl)
+    }
+
+    @Test
+    fun normalize_clampsAnswerOverlayAutoDismissSeconds() {
+        val tooLow = AppSettings(
+            automation = AutomationSettings(answerOverlayAutoDismissSeconds = -5)
+        ).normalize()
+        val tooHigh = AppSettings(
+            automation = AutomationSettings(answerOverlayAutoDismissSeconds = 999)
+        ).normalize()
+
+        assertEquals(0, tooLow.automation.answerOverlayAutoDismissSeconds)
+        assertEquals(120, tooHigh.automation.answerOverlayAutoDismissSeconds)
+    }
+
+    @Test
+    fun automationSettings_newFieldsDefaultsAndLegacyJsonCompatibility() {
+        val defaults = AutomationSettings()
+
+        assertTrue(defaults.answerOverlayEnabled)
+        assertEquals(0, defaults.answerOverlayAutoDismissSeconds)
+        assertFalse(defaults.startInAutoMode)
+
+        val legacyJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val legacy = legacyJson.decodeFromString<AutomationSettings>(
+            """{"completionNotificationEnabled":false,"autoModeTimeoutSeconds":45,"skipScreenshotEnabled":true}"""
+        )
+
+        assertFalse(legacy.completionNotificationEnabled)
+        assertEquals(45, legacy.autoModeTimeoutSeconds)
+        assertTrue(legacy.answerOverlayEnabled)
+        assertEquals(0, legacy.answerOverlayAutoDismissSeconds)
+        assertFalse(legacy.startInAutoMode)
     }
 
     @Test

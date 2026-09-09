@@ -49,16 +49,6 @@ internal class OverlayInteractionController(
         uiState.update { it.copy(pendingVibrationLetters = null) }
     }
 
-    fun onBubbleTappedAfterLettersShown() {
-        val currentState = bubbleStateMachine.currentState
-        AppDebugLogStore.i(tag, "onBubbleTappedAfterLettersShown launchMode=${uiState.value.launchMode} bubble=${currentState::class.simpleName}")
-
-        if (uiState.value.launchMode == CaptureLaunchMode.AUTO && currentState is BubbleState.ShowingLetters) {
-            AppDebugLogStore.i(tag, "onBubbleTappedAfterLettersShown clearing letters and entering pending reset")
-            bubbleStateMachine.dispatch(BubbleEvent.SingleTap)
-        }
-    }
-
     fun handleSingleTap() {
         val currentState = bubbleStateMachine.currentState
         AppDebugLogStore.i(tag, "handleSingleTap state=${currentState::class.simpleName}")
@@ -77,10 +67,19 @@ internal class OverlayInteractionController(
                 AppDebugLogStore.i(tag, "handleSingleTap ignored, showing capture success")
             }
             is BubbleState.Copied -> {
-                bubbleStateMachine.dispatch(BubbleEvent.SingleTap)
+                // 自动模式：文本题答完单击一次直接截下一题，不用先复位再点第二次。
+                if (uiState.value.launchMode == CaptureLaunchMode.AUTO) {
+                    openCropSheet()
+                } else {
+                    bubbleStateMachine.dispatch(BubbleEvent.SingleTap)
+                }
             }
             is BubbleState.Error -> {
-                bubbleStateMachine.dispatch(BubbleEvent.SingleTap)
+                if (uiState.value.launchMode == CaptureLaunchMode.AUTO) {
+                    openCropSheet()
+                } else {
+                    bubbleStateMachine.dispatch(BubbleEvent.SingleTap)
+                }
             }
             else -> {
                 openCropSheet()

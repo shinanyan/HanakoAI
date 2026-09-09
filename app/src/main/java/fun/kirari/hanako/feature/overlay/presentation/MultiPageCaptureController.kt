@@ -13,6 +13,7 @@ import `fun`.kirari.hanako.platform.capture.ScreenCaptureManager
 import `fun`.kirari.hanako.core.debug.AppDebugLogStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +29,9 @@ internal class MultiPageCaptureController(
 
     fun enter() {
         AppDebugLogStore.i(tag, "enter")
+        // 清窗口必须和清状态成对：dispatch 会经 OverlayViewModel 的状态机 collect 间接发射 uiState，
+        // 若 answerOverlay 仍非空，观察者会把卡片在 hideNow() 之后放回来（多图下每次截图都会闪回）。
+        uiState.update { it.copy(answerOverlay = null) }
         bubbleStateMachine.dispatch(BubbleEvent.EnterMultiPageCapture)
     }
 
@@ -43,6 +47,11 @@ internal class MultiPageCaptureController(
         AppDebugLogStore.i(tag, "capturePage dispatched CaptureStart, new state=${bubbleStateMachine.currentState::class.simpleName}")
 
         scope.launch {
+            // 截图前同步隐藏答案浮层：清状态 + gate 都必须在主线程、且都在 withContext(IO) 之外。
+            val hadOverlay = uiState.value.answerOverlay != null
+            uiState.update { it.copy(answerOverlay = null) }
+            AnswerOverlayGate.hideNow()
+            if (hadOverlay) delay(AutoProcessingController.AnswerOverlayDismissSettleMs)
             runCatching {
                 withContext(Dispatchers.IO) {
                     ScreenCaptureManager.captureLatestBitmap(appContext, uiState.value.settings.screenCaptureMethod)
