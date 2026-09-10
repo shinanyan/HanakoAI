@@ -258,11 +258,15 @@ fun AppSettings.resolveModelName(purpose: ModelPurpose): String {
 }
 
 fun AppSettings.normalize(): AppSettings {
+    // 网关提供方只会由 availableProviders() 虚拟注入，从未写进持久化的 providers，所以正常数据里
+    // 过滤不掉任何东西；保留它是为了兜住历史数据或外部导入可能带进来的同名条目，避免用户的默认
+    // 提供方落到已移除的作者服务上。
+    val normalizedProviders = providers.filterNot { it.id == LEGACY_GATEWAY_PROVIDER_ID }
     val normalizedAssistants = normalizeAssistants(
         assistants = assistants,
         selectedAssistantId = selectedAssistantId
     )
-    val availableProviders = providers
+    val availableProviders = normalizedProviders
     val fallbackProvider = availableProviders.firstOrNull { it.id == selectedProviderId } ?: availableProviders.firstOrNull()
     val normalizedGroups = historyGroups
         .map { it.copy(name = it.name.normalizedHistoryGroupName()) }
@@ -280,6 +284,7 @@ fun AppSettings.normalize(): AppSettings {
         .normalizedHistoryMetadata()
     return copy(
         schemaVersion = maxOf(schemaVersion, StorageSchema.CURRENT_APP_DATA_VERSION),
+        providers = normalizedProviders,
         automation = automation.normalize(),
         selectedProviderId = selectedProviderId
             ?.takeIf { candidate -> availableProviders.any { it.id == candidate } }

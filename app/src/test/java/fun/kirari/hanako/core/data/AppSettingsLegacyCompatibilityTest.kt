@@ -69,6 +69,30 @@ class AppSettingsLegacyCompatibilityTest {
         assertEquals(listOf("history-1"), decoded.history.map { it.id })
     }
 
+    @Test
+    fun legacyProviderEntryWithGatewayIdIsStrippedSoItCannotBecomeTheDefault() {
+        val normalized = HanakoSettingsJson
+            .decodeFromString<AppSettings>(LEGACY_GATEWAY_PROVIDER_ENTRY_JSON)
+            .normalize()
+
+        // 该条目若被保留，selectedProviderId 会命中它，用户的默认提供方就落在一个已移除的服务上。
+        assertEquals(listOf("user-provider-1"), normalized.providers.map { it.id })
+        assertEquals("user-provider-1", normalized.selectedProviderId)
+    }
+
+    @Test
+    fun nullLegacyFieldFallsBackToItsDefaultInsteadOfResettingEverything() {
+        // coerceInputValues 不只作用于枚举：非空字段的 null 也会降级为属性默认值。
+        // 这条守住的是「最坏情况下也不要把设置与历史整份清零」——以前任何解码异常都会走
+        // SettingsStore 的 getOrElse { AppSettings().normalize() } 兜底。
+        val decoded = HanakoSettingsJson.decodeFromString<AppSettings>(LEGACY_NULL_FIELD_JSON)
+
+        assertEquals(ModelSelection(), decoded.textModelSelection)
+        assertEquals(listOf("user-provider-1"), decoded.providers.map { it.id })
+        assertEquals("sk-user-key", decoded.providers.single().apiKey)
+        assertEquals(listOf("history-1"), decoded.history.map { it.id })
+    }
+
     private companion object {
         /** v0.0.19 及以前由 AppSettings 序列化产生，含作者网关的 `kirari` 段与网关模型选择。 */
         val LEGACY_V019_SETTINGS_JSON = """
@@ -183,6 +207,70 @@ class AppSettingsLegacyCompatibilityTest {
                 }
               ],
               "selectedProviderId": "user-provider-1",
+              "history": [
+                {
+                  "id": "history-1",
+                  "assistantName": "题目解答助手",
+                  "route": "OCR_THEN_LLM",
+                  "answer": "答案一"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        /**
+         * providers 里直接躺着网关条目、且 selectedProviderId 指向它——正常路径不会产生这种数据，
+         * 用于守住「即使出现也不能让用户的默认提供方落到已移除的服务上」。
+         * 网关条目的 kind 特意写成 OPENAI_COMPATIBLE，以便只考察 id 过滤这一条规则。
+         */
+        val LEGACY_GATEWAY_PROVIDER_ENTRY_JSON = """
+            {
+              "schemaVersion": 3,
+              "providers": [
+                {
+                  "id": "__kirari_network__",
+                  "name": "Legacy Gateway",
+                  "kind": "OPENAI_COMPATIBLE",
+                  "baseUrl": "https://legacy-gateway.example.com",
+                  "apiKey": ""
+                },
+                {
+                  "id": "user-provider-1",
+                  "name": "我的 OpenAI",
+                  "kind": "OPENAI_COMPATIBLE",
+                  "baseUrl": "https://api.example.com/v1",
+                  "apiKey": "sk-user-key",
+                  "chatModel": "gpt-4o-mini",
+                  "visionModel": "gpt-4o",
+                  "ocrModel": "gpt-4.1-mini"
+                }
+              ],
+              "selectedProviderId": "__kirari_network__",
+              "textModelSelection": { "providerId": "__kirari_network__", "model": "kirari-text" },
+              "history": []
+            }
+        """.trimIndent()
+
+        /** 非空字段被写成 null：以前会抛异常触发整份重置，coerceInputValues 后应降级为默认值。 */
+        val LEGACY_NULL_FIELD_JSON = """
+            {
+              "schemaVersion": 3,
+              "providers": [
+                {
+                  "id": "user-provider-1",
+                  "name": "我的 OpenAI",
+                  "kind": "OPENAI_COMPATIBLE",
+                  "baseUrl": "https://api.example.com/v1",
+                  "apiKey": "sk-user-key",
+                  "chatModel": "gpt-4o-mini",
+                  "visionModel": "gpt-4o",
+                  "ocrModel": "gpt-4.1-mini"
+                }
+              ],
+              "selectedProviderId": null,
+              "textModelSelection": null,
+              "visionModelSelection": null,
+              "ocrModelSelection": null,
               "history": [
                 {
                   "id": "history-1",

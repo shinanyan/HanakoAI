@@ -9,7 +9,6 @@ import `fun`.kirari.hanako.core.model.ProcessingRoute
 import `fun`.kirari.hanako.core.data.ScreenCaptureMethod
 import `fun`.kirari.hanako.core.data.SettingsRepository
 import `fun`.kirari.hanako.core.data.WebSearchSettings
-import `fun`.kirari.hanako.core.data.availableProviders
 import `fun`.kirari.hanako.core.data.defaultAssistant
 import `fun`.kirari.hanako.core.data.defaultProvider
 import `fun`.kirari.hanako.core.data.modelSelectionFor
@@ -55,7 +54,7 @@ internal class SettingsEditorController(
                 val remaining = current.providers.filterNot { it.id == providerId }
                 val providers = if (remaining.isEmpty()) listOf(defaultProvider()) else remaining
                 val selectedProviderId = providers.firstOrNull()?.id
-                val fallbackProvider = current.copy(providers = providers).availableProviders().firstOrNull()
+                val fallbackProvider = providers.firstOrNull()
                 current.copy(
                     providers = providers,
                     selectedProviderId = selectedProviderId,

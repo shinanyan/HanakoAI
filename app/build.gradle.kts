@@ -62,8 +62,8 @@ android {
         applicationId = "fun.kirari.hanako"
         minSdk = 24
         targetSdk = 35
-        versionCode = 19
-        versionName = "0.0.19-alpha"
+        versionCode = 20
+        versionName = "0.0.20-alpha"
 
         buildConfigField("boolean", "SHOW_DEBUG_LOGS", showDebugLogs.toString())
         buildConfigField("boolean", "VERBOSE_LLM_LOGS", verboseLlmLogs.toString())
