@@ -153,7 +153,6 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.jetbrains.markdown)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.okhttp)
     implementation(libs.coil.compose)
     implementation(libs.jlatexmath)

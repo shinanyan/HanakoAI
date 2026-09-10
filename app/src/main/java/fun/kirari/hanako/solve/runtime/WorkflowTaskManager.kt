@@ -41,7 +41,8 @@ internal class WorkflowTaskManager(
     private val conversationWorkflow: ConversationWorkflowEngine,
     private val titleSummaryService: TitleSummaryService? = null,
     private val scope: CoroutineScope,
-    private val processingTimeoutMillis: Long = 90_000L
+    private val processingTimeoutMillis: Long = 90_000L,
+    private val streamUpdateIntervalMillis: Long = 60L
 ) {
     private val tag = "HanakoWorkflowTasks"
     private val automationDeliveryMutex = Mutex()
@@ -70,6 +71,8 @@ internal class WorkflowTaskManager(
             var baseResult: ProcessingResult? = null
             val progressEvents = mutableListOf<ProcessingEvent>()
             val answerText = StringBuilder()
+            val ocrThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
+            val answerThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
             runCatching {
                 withTimeout(processingTimeoutMillis) {
                     val (preparedBaseResult, capturedImages) = workflowFactory.prepareBaseResult(models, bitmaps)
@@ -81,14 +84,18 @@ internal class WorkflowTaskManager(
                         models = models,
                         capturedImages = capturedImages,
                         onOcrDelta = { text ->
-                            resultStore.update(preparedBaseResult.id) { current ->
-                                current.copy(extractedText = text)
+                            if (ocrThrottle.shouldPublish()) {
+                                resultStore.update(preparedBaseResult.id) { current ->
+                                    current.copy(extractedText = text)
+                                }
                             }
                         },
                         onAnswerDelta = { delta ->
                             answerText.append(delta)
-                            resultStore.update(preparedBaseResult.id) { current ->
-                                current.copy(answer = answerText.toString())
+                            if (answerThrottle.shouldPublish()) {
+                                resultStore.update(preparedBaseResult.id) { current ->
+                                    current.copy(answer = answerText.toString())
+                                }
                             }
                         },
                         onProgressEvent = { event ->
@@ -154,6 +161,8 @@ internal class WorkflowTaskManager(
         val job = scope.launch {
             val progressEvents = mutableListOf<ProcessingEvent>()
             val answerText = StringBuilder()
+            val ocrThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
+            val answerThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
             val (baseResult, capturedImages) = workflowFactory.prepareRegenerationBaseResult(
                 existingResult = existingResult,
                 models = models,
@@ -168,14 +177,18 @@ internal class WorkflowTaskManager(
                         models = models,
                         capturedImages = capturedImages,
                         onOcrDelta = { text ->
-                            resultStore.update(historyId) { current ->
-                                current.copy(extractedText = text)
+                            if (ocrThrottle.shouldPublish()) {
+                                resultStore.update(historyId) { current ->
+                                    current.copy(extractedText = text)
+                                }
                             }
                         },
                         onAnswerDelta = { delta ->
                             answerText.append(delta)
-                            resultStore.update(historyId) { current ->
-                                current.withUpdatedAnswerVersion(versionIndex, answerText.toString())
+                            if (answerThrottle.shouldPublish()) {
+                                resultStore.update(historyId) { current ->
+                                    current.withUpdatedAnswerVersion(versionIndex, answerText.toString())
+                                }
                             }
                         },
                         onProgressEvent = { event ->
@@ -238,6 +251,8 @@ internal class WorkflowTaskManager(
             var baseResult: ProcessingResult? = null
             val progressEvents = mutableListOf<ProcessingEvent>()
             val thoughtText = StringBuilder()
+            val ocrThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
+            val thoughtThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
             runCatching {
                 withTimeout(processingTimeoutMillis) {
                     val (preparedBaseResult, capturedImages) = workflowFactory.prepareBaseResult(
@@ -253,14 +268,18 @@ internal class WorkflowTaskManager(
                         models = models,
                         capturedImages = capturedImages,
                         onOcrDelta = { text ->
-                            resultStore.update(preparedBaseResult.id) { current ->
-                                current.copy(extractedText = text)
+                            if (ocrThrottle.shouldPublish()) {
+                                resultStore.update(preparedBaseResult.id) { current ->
+                                    current.copy(extractedText = text)
+                                }
                             }
                         },
                         onThoughtDelta = { delta ->
                             thoughtText.append(delta)
-                            resultStore.update(preparedBaseResult.id) { current ->
-                                current.copy(automationThought = thoughtText.toString())
+                            if (thoughtThrottle.shouldPublish()) {
+                                resultStore.update(preparedBaseResult.id) { current ->
+                                    current.copy(automationThought = thoughtText.toString())
+                                }
                             }
                         },
                         onProgressEvent = { event ->
@@ -335,17 +354,20 @@ internal class WorkflowTaskManager(
                 resultStore.upsert(prepared.startedResult)
 
                 val answer = StringBuilder()
+                val answerThrottle = StreamUpdateThrottle(streamUpdateIntervalMillis)
                 withTimeout(models.firstDeltaTimeoutMillis.coerceAtLeast(90_000L)) {
                     conversationWorkflow.runTurn(prepared) { delta ->
                         answer.append(delta)
-                        resultStore.updateConversationTurn(historyId, turnId) { turn ->
-                            turn.withStreamingAssistantText(answer.toString())
+                        if (answerThrottle.shouldPublish()) {
+                            resultStore.updateConversationTurn(historyId, turnId) { turn ->
+                                turn.withStreamingAssistantText(answer.toString())
+                            }
                         }
                     }
                 }
                 require(answer.isNotBlank()) { "模型未返回文本内容" }
                 resultStore.updateConversationTurnNow(historyId, turnId) { turn ->
-                    turn.withCommittedAssistantVersion()
+                    turn.withCommittedAssistantVersion(answer.toString())
                 } ?: error("对话记录已被删除")
             }.onSuccess {
                 AppDebugLogStore.i(tag, "conversation task success taskId=$taskId historyId=$historyId")

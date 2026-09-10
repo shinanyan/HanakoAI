@@ -20,13 +20,12 @@ class SolveModelsTest {
 
     @Test
     fun committedAssistantVersion_appendsStreamingTextToInheritedVersions() {
-        val pendingRetry = FollowUpTurn(
+        val ongoingTurn = FollowUpTurn(
             userText = "question",
-            pendingAssistantText = "new answer",
             assistantVersions = listOf(AnswerVersion("old answer"))
         )
 
-        val committed = pendingRetry.withCommittedAssistantVersion()
+        val committed = ongoingTurn.withCommittedAssistantVersion("new answer")
 
         assertEquals(listOf("old answer", "new answer"), committed.assistantVersions.map { it.text })
         assertEquals("", committed.pendingAssistantText)

@@ -67,8 +67,7 @@ internal class AnswerAgentNode(
         return NodeResult(
             output = AnswerNodeOutput(
                 answer = outcome.answer,
-                searchOutcome = outcome.searchOutcome,
-                messageTraceSummary = outcome.messageTraceSummary
+                searchOutcome = outcome.searchOutcome
             ),
             checkpointSummary = "answer ${outcome.answer.length} chars"
         )
@@ -77,8 +76,7 @@ internal class AnswerAgentNode(
 
 private data class RuntimeAnswerResult(
     val answer: String,
-    val searchOutcome: SearchOutcome?,
-    val messageTraceSummary: String
+    val searchOutcome: SearchOutcome?
 )
 
 private class AnswerAgentRuntime(
@@ -108,7 +106,7 @@ private class AnswerAgentRuntime(
                 trustAllHttpsCertificates = trustAllHttpsCertificates,
                 onDelta = onAnswerDelta
             )
-            return RuntimeAnswerResult(answer = answer, searchOutcome = null, messageTraceSummary = "single_pass")
+            return RuntimeAnswerResult(answer = answer, searchOutcome = null)
         }
 
         val messages = mutableListOf<ChatMessage>()
@@ -134,8 +132,7 @@ private class AnswerAgentRuntime(
                 if (finalText.isNotBlank()) {
                     return RuntimeAnswerResult(
                         answer = pass.text,
-                        searchOutcome = latestSearchOutcome,
-                        messageTraceSummary = "tool_loop_${index + 1}_done"
+                        searchOutcome = latestSearchOutcome
                     )
                 }
                 val fallbackAnswer = collectTextStream(
@@ -150,14 +147,12 @@ private class AnswerAgentRuntime(
                 )
                 return RuntimeAnswerResult(
                     answer = fallbackAnswer,
-                    searchOutcome = latestSearchOutcome,
-                    messageTraceSummary = "fallback_no_tool_call"
+                    searchOutcome = latestSearchOutcome
                 )
             }
             val tool = tools.firstOrNull { it.name == toolCall.name } ?: return RuntimeAnswerResult(
                 answer = pass.text,
-                searchOutcome = latestSearchOutcome,
-                messageTraceSummary = "unknown_tool_${toolCall.name}"
+                searchOutcome = latestSearchOutcome
             )
             val toolResult = tool.invoke(toolCall.arguments, toolContext)
             onToolEvents(toolResult.events)
@@ -186,8 +181,7 @@ private class AnswerAgentRuntime(
         )
         return RuntimeAnswerResult(
             answer = fallbackAnswer,
-            searchOutcome = latestSearchOutcome,
-            messageTraceSummary = "fallback_after_tool_loop"
+            searchOutcome = latestSearchOutcome
         )
     }
 

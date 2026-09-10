@@ -192,9 +192,15 @@ fun FollowUpTurn.withStreamingAssistantText(text: String): FollowUpTurn {
     return copy(pendingAssistantText = text)
 }
 
-fun FollowUpTurn.withCommittedAssistantVersion(): FollowUpTurn {
+/**
+ * 提交本轮回复。
+ *
+ * [text] 必须是调用方累积的完整文本，而不是流式中间态里最后一次发布的片段：
+ * 流式更新是节流的，拿已发布值提交会在最后一帧被丢弃时截断答案。
+ */
+fun FollowUpTurn.withCommittedAssistantVersion(text: String): FollowUpTurn {
     val versions = assistantVersions.toMutableList()
-    if (pendingAssistantText.isNotBlank()) versions += AnswerVersion(pendingAssistantText)
+    if (text.isNotBlank()) versions += AnswerVersion(text)
     return copy(
         assistantVersions = versions,
         pendingAssistantText = "",

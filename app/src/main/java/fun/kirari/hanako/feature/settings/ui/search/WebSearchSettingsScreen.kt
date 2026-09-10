@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import `fun`.kirari.hanako.core.data.SearchProviderKind
 import `fun`.kirari.hanako.core.data.WebSearchSettings
 import `fun`.kirari.hanako.core.data.defaultBaseUrl
+import `fun`.kirari.hanako.core.ui.components.DraftOutlinedTextField
 import `fun`.kirari.hanako.core.ui.components.SectionCard
 import `fun`.kirari.hanako.feature.settings.presentation.WebSearchQuotaState
 import `fun`.kirari.hanako.feature.settings.presentation.WebSearchQuotaStatus
@@ -204,33 +205,31 @@ private fun WebSearchProviderConfig(
             }
         }
 
-        OutlinedTextField(
+        // 这两个字段用防抖提交：裸 OutlinedTextField 会在每个按键上写一次设置，
+        // 而设置是整份 JSON（含全部历史）重新编码并落盘。
+        DraftOutlinedTextField(
+            fieldKey = "web_search_base_url",
             value = webSearchSettings.provider.baseUrl,
-            onValueChange = { url ->
+            onCommit = { url ->
                 onUpdateWebSearchSettings {
                     it.copy(provider = it.provider.copy(baseUrl = url))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("API URL") },
-            leadingIcon = { Icon(Icons.Rounded.Link, contentDescription = null) },
-            shape = RoundedCornerShape(12.dp)
+            label = "API URL",
+            leadingIcon = { Icon(Icons.Rounded.Link, contentDescription = null) }
         )
 
-        OutlinedTextField(
+        DraftOutlinedTextField(
+            fieldKey = "web_search_api_key",
             value = webSearchSettings.provider.apiKey,
-            onValueChange = { key ->
+            onCommit = { key ->
                 onUpdateWebSearchSettings {
                     it.copy(provider = it.provider.copy(apiKey = key))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("API Key") },
+            label = "API Key",
             leadingIcon = { Icon(Icons.Rounded.Key, contentDescription = null) },
             visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
-            shape = RoundedCornerShape(12.dp),
             trailingIcon = {
                 IconButton(onClick = { showApiKey = !showApiKey }) {
                     Crossfade(targetState = showApiKey, label = "apikey_visibility") { isVisible ->

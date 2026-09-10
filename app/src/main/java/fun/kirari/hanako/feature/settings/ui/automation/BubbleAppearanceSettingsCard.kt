@@ -33,7 +33,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +55,6 @@ import `fun`.kirari.hanako.core.data.MAX_SPINNER_DIAMETER_DP
 import `fun`.kirari.hanako.core.data.MIN_BUBBLE_DIAMETER_DP
 import `fun`.kirari.hanako.core.data.MIN_BUBBLE_LETTER_TEXT_SIZE_DP
 import `fun`.kirari.hanako.core.data.MIN_SPINNER_DIAMETER_DP
-import kotlinx.coroutines.delay
 
 @Composable
 internal fun BubbleAppearanceResetButton(
@@ -74,13 +72,9 @@ internal fun BubbleAppearanceSettingsCard(
 ) {
     var draftSettings by remember(settings) { mutableStateOf(settings) }
 
-    LaunchedEffect(draftSettings) {
-        if (draftSettings != settings) {
-            delay(180)
-            onChange(draftSettings)
-        }
-    }
-
+    // 只在拖动结束时提交一次。早先这里还有一个 LaunchedEffect(draftSettings){ delay(180); onChange() }
+    // 的防抖，但它会在拖动过程中持续写设置，松手时 onValueChangeFinished 又写一次，
+    // 等于每次调整写两遍整份设置 JSON。
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)

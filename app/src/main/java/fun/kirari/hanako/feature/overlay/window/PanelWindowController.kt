@@ -56,8 +56,12 @@ internal class PanelWindowController(
     private var panelHandleWidthPx: Int = 0
     private var panelAnimationJob: Job? = null
     private var panelClosing = false
+    private var lastAppliedMode: OverlaySheetMode? = null
+    private var lastAppliedScreenHeightPx: Int = 0
+    private var lastAppliedDockHeightPx: Int = 0
 
     fun showOrUpdate(mode: OverlaySheetMode) {
+        val wasClosing = panelClosing
         panelClosing = false
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
@@ -68,6 +72,18 @@ internal class PanelWindowController(
         val targetHeightPx = (screenHeightPx * if (mode == OverlaySheetMode.CROP) 0.88f else 0.92f)
             .roundToInt()
             .coerceAtLeast(dockHeightPx)
+
+        // 状态观察者会在每次 uiState 变化时调用这里，包括流式输出的每个 token。
+        // 面板已就绪、模式与几何都没变、也不在关闭动画中时，下面这次重算的结果与上次完全
+        // 相同，可以跳过两次 updateViewLayout（每次都是一个 WindowManager 事务）。
+        if (!wasClosing &&
+            panelView != null &&
+            mode == lastAppliedMode &&
+            screenHeightPx == lastAppliedScreenHeightPx &&
+            dockHeightPx == lastAppliedDockHeightPx
+        ) {
+            return
+        }
 
         panelScreenHeightPx = screenHeightPx
         panelHeightPx = targetHeightPx
@@ -103,6 +119,10 @@ internal class PanelWindowController(
             runCatching { windowManager.updateViewLayout(panelHandleView, handleParams) }
             applyPanelHeight(panelCurrentHeightPx)
         }
+
+        lastAppliedMode = mode
+        lastAppliedScreenHeightPx = screenHeightPx
+        lastAppliedDockHeightPx = dockHeightPx
     }
 
     fun hideWithAnimation() {
@@ -322,6 +342,9 @@ internal class PanelWindowController(
         panelParams = null
         panelCurrentHeightPx = 0
         panelClosing = false
+        lastAppliedMode = null
+        lastAppliedScreenHeightPx = 0
+        lastAppliedDockHeightPx = 0
     }
 
     private fun removeWindowImmediately(name: String, view: android.view.View?) {

@@ -598,8 +598,8 @@ private class FakeHanakoWorkflowEngine : HanakoWorkflowEngine {
         val finalAnswer = finalAnswers[historyId] ?: answerDeltas[historyId].orEmpty().joinToString("")
         return AnswerWorkflowOutput(
             capturedImages = capturedImages,
-            ocrOutput = OcrNodeOutput(text = "ocr-$historyId", pageTexts = listOf("ocr-$historyId"), providerInfo = "fake"),
-            answerOutput = AnswerNodeOutput(answer = finalAnswer, searchOutcome = null, messageTraceSummary = "fake"),
+            ocrOutput = OcrNodeOutput(text = "ocr-$historyId", pageTexts = listOf("ocr-$historyId")),
+            answerOutput = AnswerNodeOutput(answer = finalAnswer, searchOutcome = null),
             checkpoints = emptyList()
         )
     }
@@ -619,8 +619,7 @@ private class FakeHanakoWorkflowEngine : HanakoWorkflowEngine {
                     thought = "",
                     action = AutomationActionRecord(AutomationActionType.SET_CLIPBOARD, "")
                 ),
-                searchOutcome = null,
-                toolTraceSummary = "fake"
+                searchOutcome = null
             ),
             checkpoints = emptyList()
         )

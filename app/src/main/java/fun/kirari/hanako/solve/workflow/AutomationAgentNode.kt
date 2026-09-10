@@ -5,7 +5,6 @@ import `fun`.kirari.hanako.solve.workflow.tools.AgentTool
 import `fun`.kirari.hanako.solve.workflow.tools.ToolContext
 import `fun`.kirari.hanako.solve.model.AutomationResult
 import `fun`.kirari.hanako.solve.workflow.buildAutomationResultFromModelOutput
-import `fun`.kirari.hanako.core.model.AutomationActionRecord
 import `fun`.kirari.hanako.core.data.ModelProviderConfig
 import `fun`.kirari.hanako.core.model.ProcessingEvent
 import `fun`.kirari.hanako.core.model.ProcessingRoute
@@ -17,16 +16,9 @@ import `fun`.kirari.hanako.solve.workflow.NodeResult
 import `fun`.kirari.hanako.solve.workflow.WorkflowContext
 import `fun`.kirari.hanako.solve.workflow.WorkflowNode
 import `fun`.kirari.llm.core.ChatMessage
-import `fun`.kirari.llm.core.ChatToolCall
-import `fun`.kirari.llm.core.ChatToolFunction
 import `fun`.kirari.llm.core.LlmEvent
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 
 internal class AutomationAgentNode(
     private val unifiedClient: UnifiedLLMClient,
@@ -145,8 +137,7 @@ private class AutomationAgentRuntime(
                 automationTrace(traceTag, "tool_loop_${index + 1} no tool call; returning raw text only")
                 return AutomationNodeOutput(
                     automationResult = buildAutomationResult(StreamResult(thought = pass.text.trim(), toolCall = null)),
-                    searchOutcome = latestSearchOutcome,
-                    toolTraceSummary = "tool_loop_${index + 1}_no_call"
+                    searchOutcome = latestSearchOutcome
                 )
             }
 
@@ -155,8 +146,7 @@ private class AutomationAgentRuntime(
                 automationTrace(traceTag, "tool_loop_${index + 1} unknown tool=${toolCall.name} args=${toolCall.arguments}")
                 return AutomationNodeOutput(
                     automationResult = buildAutomationResult(StreamResult(thought = pass.text.trim(), toolCall = toolCall)),
-                    searchOutcome = latestSearchOutcome,
-                    toolTraceSummary = "unknown_tool_${toolCall.name}"
+                    searchOutcome = latestSearchOutcome
                 )
             }
             val toolResult = tool.invoke(toolCall.arguments, toolContext)
@@ -185,8 +175,7 @@ private class AutomationAgentRuntime(
             }
             return AutomationNodeOutput(
                 automationResult = buildAutomationResult(StreamResult(thought = pass.text.trim(), toolCall = toolCall)),
-                searchOutcome = latestSearchOutcome,
-                toolTraceSummary = "final_tool_${toolCall.name}"
+                searchOutcome = latestSearchOutcome
             )
         }
 
@@ -206,8 +195,7 @@ private class AutomationAgentRuntime(
         )
         return AutomationNodeOutput(
             automationResult = buildAutomationResult(fallback),
-            searchOutcome = latestSearchOutcome,
-            toolTraceSummary = "fallback_after_tool_loop"
+            searchOutcome = latestSearchOutcome
         )
     }
 

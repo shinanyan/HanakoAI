@@ -42,8 +42,7 @@ internal class OcrNode(
         return NodeResult(
             output = OcrNodeOutput(
                 text = combinedText,
-                pageTexts = pageTexts,
-                providerInfo = if (models.usingLocalOcr) "local" else models.ocrProvider?.name.orEmpty()
+                pageTexts = pageTexts
             ),
             events = listOf(ProcessingEvent(title = "OCR 完成", detail = "已提取 ${combinedText.length} 个字符")),
             checkpointSummary = "ocr text ${combinedText.length} chars"

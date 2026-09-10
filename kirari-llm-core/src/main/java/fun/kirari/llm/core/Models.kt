@@ -71,8 +71,6 @@ data class StreamRequest(
     val firstDeltaTimeoutMillis: Long,
     val trustAllHttpsCertificates: Boolean
 ) {
-    val hasImages: Boolean get() = imagesBase64.isNotEmpty()
-
     fun effectiveMessages(): List<ChatMessage> {
         messages?.let { return it }
         val result = mutableListOf<ChatMessage>()

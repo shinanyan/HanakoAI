@@ -48,9 +48,18 @@ internal class BubbleWindowController(
     private var countView: TextView? = null
     private var pendingLongPress: Runnable? = null
     private var pendingDoubleTap: Runnable? = null
+    private var lastAppliedBubbleState: BubbleState? = null
+    private var lastAppliedLaunchMode: CaptureLaunchMode? = null
+    private var lastAppliedAppearanceSettings: BubbleAppearanceSettings? = null
+    private var lastAppliedStaticMode: Boolean? = null
 
     fun show() {
         if (bubbleView != null) return
+        // 新建的视图还没被 update 上过样式，清掉守卫缓存保证下一次 update 一定会执行。
+        lastAppliedBubbleState = null
+        lastAppliedLaunchMode = null
+        lastAppliedAppearanceSettings = null
+        lastAppliedStaticMode = null
         val density = context.resources.displayMetrics.density
         val initialSettings = bubbleAppearanceSettings()
         val rootSizePx = computeRootSizePx(initialSettings)
@@ -133,21 +142,35 @@ internal class BubbleWindowController(
     }
 
     fun update(bubbleState: BubbleState, launchMode: CaptureLaunchMode) {
-        AppDebugLogStore.d(logTag, "update state=${bubbleState::class.simpleName} launchMode=$launchMode")
-        val bubble = surfaceView ?: return
-        val icon = iconView ?: return
-        val text = textView
-        val spinner = spinnerView
         val settings = if (bubbleState is BubbleState.MenuExpanded) {
             BubbleAppearanceSettings()
         } else {
             bubbleAppearanceSettings()
         }
+        val staticMode = isStaticModeEnabled()
+        // 状态观察者在每次 uiState 变化时都会调用这里（含流式 token）。输出完全由这四个
+        // 输入决定，所以它们都没变时可以直接返回，省掉 render、view 刷新和一次颜色动画重启。
+        if (bubbleState == lastAppliedBubbleState &&
+            launchMode == lastAppliedLaunchMode &&
+            settings == lastAppliedAppearanceSettings &&
+            staticMode == lastAppliedStaticMode
+        ) {
+            return
+        }
+        lastAppliedBubbleState = bubbleState
+        lastAppliedLaunchMode = launchMode
+        lastAppliedAppearanceSettings = settings
+        lastAppliedStaticMode = staticMode
+        AppDebugLogStore.d(logTag, "update state=${bubbleState::class.simpleName} launchMode=$launchMode")
+        val bubble = surfaceView ?: return
+        val icon = iconView ?: return
+        val text = textView
+        val spinner = spinnerView
         val appearance = BubbleRenderer.render(
             state = bubbleState,
             launchMode = launchMode,
             context = context,
-            staticModeEnabled = isStaticModeEnabled()
+            staticModeEnabled = staticMode
         )
         val overallAlpha = (settings.overallOpacity / 100f).coerceIn(0f, 1f)
         updateRootSize(settings)
@@ -205,6 +228,10 @@ internal class BubbleWindowController(
         }
         pendingLongPress = null
         pendingDoubleTap = null
+        lastAppliedBubbleState = null
+        lastAppliedLaunchMode = null
+        lastAppliedAppearanceSettings = null
+        lastAppliedStaticMode = null
         bubbleView = null
         surfaceView = null
         iconView = null

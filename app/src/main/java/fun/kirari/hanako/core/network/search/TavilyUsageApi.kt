@@ -14,9 +14,7 @@ import java.net.SocketTimeoutException
 internal data class TavilyUsageSummary(
     val keyUsage: Int? = null,
     val keyLimit: Int? = null,
-    val accountPlan: String? = null,
-    val accountUsage: Int? = null,
-    val accountLimit: Int? = null
+    val accountPlan: String? = null
 ) {
     val keyRemaining: Int?
         get() = if (keyLimit != null && keyUsage != null) {
@@ -71,9 +69,7 @@ internal class TavilyUsageApi(
             TavilyUsageSummary(
                 keyUsage = key?.get("usage")?.jsonPrimitive?.content?.toIntOrNull(),
                 keyLimit = key?.get("limit")?.jsonPrimitive?.content?.toIntOrNull(),
-                accountPlan = account?.get("current_plan")?.jsonPrimitive?.content,
-                accountUsage = account?.get("plan_usage")?.jsonPrimitive?.content?.toIntOrNull(),
-                accountLimit = account?.get("plan_limit")?.jsonPrimitive?.content?.toIntOrNull()
+                accountPlan = account?.get("current_plan")?.jsonPrimitive?.content
             )
         } catch (e: Exception) {
             AppDebugLogStore.e(tag, "parse usage failed: ${e.message}")

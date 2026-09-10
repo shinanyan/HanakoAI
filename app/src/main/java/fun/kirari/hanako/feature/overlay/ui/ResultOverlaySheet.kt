@@ -69,6 +69,9 @@ internal fun ResultOverlaySheet(
         answerVersions.isNotEmpty() -> answerVersions.getOrNull(currentVersionIndex)?.text.orEmpty()
         else -> uiState.result?.latestAnswerText().orEmpty()
     }
+    val searchStatus = remember(uiState.result?.events) {
+        searchStatusText(uiState.result?.events.orEmpty())
+    }
 
     Box(
         modifier = Modifier
@@ -119,7 +122,7 @@ internal fun ResultOverlaySheet(
                         currentVersionIndex = currentVersionIndex,
                         switchDirection = switchDirection,
                         working = uiState.working,
-                        searchStatus = searchStatusText(uiState.result?.events.orEmpty()),
+                        searchStatus = searchStatus,
                         onPreviousVersion = {
                             if (currentVersionIndex > 0) {
                                 switchDirection = AnswerSwitchDirection.PREVIOUS

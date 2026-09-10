@@ -20,8 +20,7 @@ internal data class OcrNodeInput(
 
 internal data class OcrNodeOutput(
     val text: String,
-    val pageTexts: List<String>,
-    val providerInfo: String
+    val pageTexts: List<String>
 )
 
 internal data class AnswerNodeInput(
@@ -32,8 +31,7 @@ internal data class AnswerNodeInput(
 
 internal data class AnswerNodeOutput(
     val answer: String,
-    val searchOutcome: SearchOutcome?,
-    val messageTraceSummary: String
+    val searchOutcome: SearchOutcome?
 )
 
 internal data class AnswerWorkflowOutput(
@@ -51,8 +49,7 @@ internal data class AutomationNodeInput(
 
 internal data class AutomationNodeOutput(
     val automationResult: AutomationResult,
-    val searchOutcome: SearchOutcome?,
-    val toolTraceSummary: String
+    val searchOutcome: SearchOutcome?
 )
 
 internal data class AutomationWorkflowOutput(
