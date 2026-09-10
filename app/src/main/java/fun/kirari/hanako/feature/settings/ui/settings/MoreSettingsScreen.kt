@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Adjust
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Security
@@ -27,10 +26,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import `fun`.kirari.hanako.BuildConfig
 import `fun`.kirari.hanako.core.data.AutomationSettings
 import `fun`.kirari.hanako.core.data.BubbleAppearanceSettings
-import `fun`.kirari.hanako.core.data.KirariSettings
 import `fun`.kirari.hanako.core.data.ScreenCaptureMethod
 import `fun`.kirari.hanako.feature.home.presentation.RegisterScrollToTopHandler
 import androidx.compose.ui.graphics.Color
@@ -42,8 +39,6 @@ fun MoreSettingsScreen(
     automationSettings: AutomationSettings,
     selectedMethod: ScreenCaptureMethod,
     trustAllHttpsCertificates: Boolean,
-    kirariSettings: KirariSettings,
-    hasKirariClientId: Boolean,
     hasNotificationPermission: Boolean,
     onToggleCompletionNotification: (Boolean) -> Unit,
     onOpenNotificationPermission: () -> Unit,
@@ -52,10 +47,7 @@ fun MoreSettingsScreen(
     onUpdateAutomationSettings: (AutomationSettings) -> Unit,
     onUpdateTimeoutSeconds: (Int) -> Unit,
     onSelectMethod: (ScreenCaptureMethod) -> Unit,
-    onToggleTrustAllHttpsCertificates: (Boolean) -> Unit,
-    onUpdateKirariServerUrl: (String) -> Unit,
-    onLoginKirari: () -> Unit,
-    onLogoutKirari: () -> Unit
+    onToggleTrustAllHttpsCertificates: (Boolean) -> Unit
 ) {
     var timeoutInput by remember(automationSettings.autoModeTimeoutSeconds) {
         mutableStateOf(automationSettings.autoModeTimeoutSeconds.toString())
@@ -165,23 +157,6 @@ fun MoreSettingsScreen(
                     selectedMethod = selectedMethod,
                     onSelectMethod = onSelectMethod
                 )
-            }
-        }
-        item {
-            if (BuildConfig.SHOW_KIRARI_ENTRY) {
-                MoreSettingCard(
-                    icon = Icons.Default.Cloud,
-                    title = "The Kirari Network",
-                    subtitle = "标准 OIDC 登录与 Kirari LLM 网关。"
-                ) {
-                    KirariSettingsCard(
-                        kirariSettings = kirariSettings,
-                        hasKirariClientId = hasKirariClientId,
-                        onServerUrlCommit = onUpdateKirariServerUrl,
-                        onLogin = onLoginKirari,
-                        onLogout = onLogoutKirari
-                    )
-                }
             }
         }
         item { Spacer(modifier = Modifier.height(80.dp)) }

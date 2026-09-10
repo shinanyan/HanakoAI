@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import `fun`.kirari.auth.core.AuthorizationSession
 import `fun`.kirari.hanako.core.debug.AppDebugLogStore
 import `fun`.kirari.hanako.core.model.migrateBase64ToFile
 import kotlinx.coroutines.flow.Flow
@@ -17,12 +16,21 @@ import kotlinx.serialization.json.Json
 
 private val Context.dataStore by preferencesDataStore(name = "hanako_settings")
 
+/**
+ * 设置与历史记录的序列化配置。升级兼容测试必须复用这个实例，
+ * 否则生产配置被改坏（例如删掉 coerceInputValues）时测试仍然会通过。
+ *
+ * coerceInputValues = true：枚举值被移除后，旧数据里的未知枚举值会退化为属性默认值，
+ * 而不是抛异常、触发 SettingsStore 的「整份重置」兜底。
+ */
+internal val HanakoSettingsJson = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+    coerceInputValues = true
+}
+
 class SettingsStore(private val context: Context) {
     private val tag = "HanakoSettingsStore"
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
 
     val settings: Flow<AppSettings> = context.dataStore.data
         .map { preferences ->
@@ -30,7 +38,8 @@ class SettingsStore(private val context: Context) {
             if (raw.isNullOrBlank()) {
                 AppSettings().normalize()
             } else {
-                runCatching { json.decodeFromString<AppSettings>(raw).normalize() }.getOrElse { AppSettings().normalize() }
+                runCatching { HanakoSettingsJson.decodeFromString<AppSettings>(raw).normalize() }
+                    .getOrElse { AppSettings().normalize() }
             }
         }
         .flatMapConcat { appSettings ->
@@ -51,54 +60,28 @@ class SettingsStore(private val context: Context) {
             val current = if (currentRaw.isNullOrBlank()) {
                 AppSettings().normalize()
             } else {
-                runCatching { json.decodeFromString<AppSettings>(currentRaw).normalize() }.getOrElse { AppSettings().normalize() }
+                runCatching { HanakoSettingsJson.decodeFromString<AppSettings>(currentRaw).normalize() }
+                    .getOrElse { AppSettings().normalize() }
             }
             val updated = transform(current).normalize()
             AppDebugLogStore.i(
                 tag,
                 "update lastResultId=${updated.lastResult?.id} historySize=${updated.history.size} latestHistoryId=${updated.history.firstOrNull()?.id}"
             )
-            preferences[SETTINGS_KEY] = json.encodeToString(AppSettings.serializer(), updated)
+            preferences[SETTINGS_KEY] = HanakoSettingsJson.encodeToString(AppSettings.serializer(), updated)
         }
     }
 
     suspend fun read(): AppSettings = settings.first()
 
-    suspend fun savePendingKirariAuthorizationSession(session: AuthorizationSession) {
-        context.dataStore.edit { preferences ->
-            preferences[PENDING_KIRARI_AUTH_SESSION_KEY] =
-                json.encodeToString(AuthorizationSession.serializer(), session)
-            AppDebugLogStore.i(tag, "savePendingKirariAuthorizationSession state=${session.state.take(8)}")
-        }
-    }
-
-    suspend fun readPendingKirariAuthorizationSession(): AuthorizationSession? {
-        val raw = context.dataStore.data.first()[PENDING_KIRARI_AUTH_SESSION_KEY].orEmpty()
-        if (raw.isBlank()) return null
-        return runCatching {
-            json.decodeFromString(AuthorizationSession.serializer(), raw)
-        }.getOrElse { error ->
-            AppDebugLogStore.e(tag, "readPendingKirariAuthorizationSession failed", error)
-            null
-        }
-    }
-
-    suspend fun clearPendingKirariAuthorizationSession() {
-        context.dataStore.edit { preferences ->
-            preferences.remove(PENDING_KIRARI_AUTH_SESSION_KEY)
-            AppDebugLogStore.i(tag, "clearPendingKirariAuthorizationSession")
-        }
-    }
-
     private suspend fun persistMigrated(settings: AppSettings) {
         context.dataStore.edit { preferences ->
-            preferences[SETTINGS_KEY] = json.encodeToString(AppSettings.serializer(), settings)
+            preferences[SETTINGS_KEY] = HanakoSettingsJson.encodeToString(AppSettings.serializer(), settings)
         }
     }
 
     companion object {
         private val SETTINGS_KEY = stringPreferencesKey("app_settings")
-        private val PENDING_KIRARI_AUTH_SESSION_KEY = stringPreferencesKey("pending_kirari_auth_session")
 
         private fun migrateHistoryImages(context: Context, settings: AppSettings): AppSettings {
             val needsMigration = settings.history.any { it.screenshotBase64 != null && it.screenshotPath == null } ||

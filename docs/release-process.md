@@ -30,7 +30,9 @@ gh release view v0.0.16-alpha \
   --json name,tagName,isPrerelease,isDraft,body,assets,publishedAt
 ```
 
-不要重新设计下载说明。保留 Full/Lite、ML Kit、32 位设备和 Kirari Network 说明的原有顺序与措辞。
+不要重新设计下载说明。保留 Full/Lite、ML Kit、32 位设备和下载说明的原有顺序与措辞。
+
+起草新版本正文时，**必须删掉上一版正文里的 The Kirari Network 段落**（形如「0.0.9 版本中加入了 The Kirari Network 在线登录的模型获取方式……记得去「模型提供方 → The Kirari Network」一键同步」）。该功能已从应用中移除，继续保留会让用户找不到入口。历史 `release-notes-v*.md` 文件本身保持原样，不要回改。
 
 ## 2. 更新版本与 changelog
 
@@ -89,7 +91,7 @@ ls -lh app/build/outputs/apk/{lite,full}/release/*.apk
 复制上一个 Release 正文作为模板，保持以下章节顺序：
 
 ```markdown
-**Full Changelog**: https://github.com/zyf2007/HanakoAI/compare/<previous-tag>...<new-tag>
+**Full Changelog**: https://github.com/shinanyan/HanakoAI/compare/<previous-tag>...<new-tag>
 
 <沿用 Full/Lite 与 ML Kit 说明>
 
@@ -146,8 +148,8 @@ gh release create v0.0.17-alpha \
 
 ```bash
 gh release view v0.0.17-alpha --json tagName,name,isDraft,isPrerelease,body,assets,url
-curl -fsSL https://api.github.com/repos/zyf2007/HanakoAI/releases/latest
-curl -fsSL https://raw.githubusercontent.com/zyf2007/HanakoAI/main/README.md
+curl -fsSL https://api.github.com/repos/shinanyan/HanakoAI/releases/latest
+curl -fsSL https://raw.githubusercontent.com/shinanyan/HanakoAI/main/README.md
 ```
 
 验证结果必须满足：

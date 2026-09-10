@@ -44,7 +44,7 @@ class AppUpdateApiTest {
         val markdown = """
             # Hanako
 
-            [[Download 0.0.13-alpha](https://github.com/zyf2007/HanakoAI/releases/download/v0.0.13-alpha/app-lite-arm64-v8a-release.apk)]  [[View Release Notes](https://github.com/zyf2007/HanakoAI/releases/tag/v0.0.13-alpha)]
+            [[Download 0.0.13-alpha](https://github.com/shinanyan/HanakoAI/releases/download/v0.0.13-alpha/app-lite-arm64-v8a-release.apk)]  [[View Release Notes](https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.13-alpha)]
 
             ## Changelog
 
@@ -56,8 +56,42 @@ class AppUpdateApiTest {
 
         assertEquals("0.0.13-alpha", update?.version)
         assertEquals("v0.0.13-alpha", update?.releaseName)
-        assertEquals("https://github.com/zyf2007/HanakoAI/releases/tag/v0.0.13-alpha", update?.releaseUrl)
+        assertEquals("https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.13-alpha", update?.releaseUrl)
         assertEquals("- 新增升级提示\n- 修复通知权限提示", update?.changelogMarkdown)
+    }
+
+    @Test
+    fun extractReadmeUpdateInfo_ignoresForkSuffixInDownloadVersion() {
+        // fork 仓库的 README 会在版本号后追加括号后缀，例如 "0.0.20-alpha (fork · debug)"。
+        // 该后缀不能进入 AppUpdateInfo.version，否则更新弹窗会显示「发现新版本 0.0.20-alpha (fork · debug)」。
+        val markdown = """
+            # Hanako
+
+            [[Download 0.0.20-alpha (fork · debug)](https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.20-alpha)]  [[View Release Notes](https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.20-alpha)] [[Telegram](https://t.me/hutao_space)]
+
+            ## Changelog
+
+            - 移除作者自建 AI 服务
+        """.trimIndent()
+
+        val update = extractReadmeUpdateInfo(markdown, currentVersion = "0.0.19-alpha")
+
+        assertEquals("0.0.20-alpha", update?.version)
+        assertEquals("v0.0.20-alpha", update?.releaseName)
+        assertEquals("https://github.com/shinanyan/HanakoAI/releases/tag/v0.0.20-alpha", update?.releaseUrl)
+        assertEquals("- 移除作者自建 AI 服务", update?.changelogMarkdown)
+    }
+
+    @Test
+    fun extractReadmeUpdateInfo_stripsForkSuffixWhenReleaseNotesLinkIsMissing() {
+        val markdown = """
+            [[Download 0.0.20-alpha (fork · debug)](https://example.com/download.apk)]
+        """.trimIndent()
+
+        val update = extractReadmeUpdateInfo(markdown, currentVersion = "0.0.19-alpha")
+
+        assertEquals("0.0.20-alpha", update?.version)
+        assertEquals("https://example.com/download.apk", update?.releaseUrl)
     }
 
     @Test

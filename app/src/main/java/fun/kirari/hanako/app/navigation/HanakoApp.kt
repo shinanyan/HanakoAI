@@ -17,7 +17,6 @@ import `fun`.kirari.hanako.feature.history.presentation.HistoryDetailOperation
 import `fun`.kirari.hanako.feature.home.presentation.LocalScrollToTopController
 import `fun`.kirari.hanako.feature.home.presentation.rememberScrollToTopController
 import `fun`.kirari.hanako.feature.settings.ui.provider.GenericProviderDetailScreen
-import `fun`.kirari.hanako.feature.settings.ui.provider.KirariProviderDetailScreen
 import `fun`.kirari.hanako.feature.settings.ui.provider.ProviderDetailScreen
 import `fun`.kirari.hanako.feature.settings.ui.provider.ProviderSettingsScreen
 import `fun`.kirari.hanako.feature.settings.ui.search.WebSearchSettingsScreen
@@ -115,8 +114,6 @@ fun HanakoApp(viewModel: AppViewModel) {
     val settings by viewModel.settings.collectAsState()
     val debugEntries by AppDebugLogStore.entries.collectAsState()
     val appUpdateState by viewModel.appUpdateState.collectAsState()
-    val kirariAuthMessage by viewModel.kirariAuthMessage.collectAsState()
-    val kirariAuthenticatedProviderId by viewModel.kirariAuthenticatedProviderId.collectAsState()
     val context = LocalContext.current
     val overlayEnabled by OverlayRuntimeState.running.collectAsState()
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
@@ -185,22 +182,6 @@ fun HanakoApp(viewModel: AppViewModel) {
         if (currentRoute?.startsWith("$ROUTE_HANAKO_HISTORY_DETAIL/") != true) {
             historyQuoteFocused = false
         }
-    }
-
-    LaunchedEffect(kirariAuthMessage) {
-        val message = kirariAuthMessage ?: return@LaunchedEffect
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        viewModel.consumeKirariAuthMessage()
-    }
-
-    LaunchedEffect(kirariAuthenticatedProviderId) {
-        val providerId = kirariAuthenticatedProviderId ?: return@LaunchedEffect
-        currentScreen = Screen.Settings
-        navController.navigate(providerDetailRoute(providerId)) {
-            launchSingleTop = true
-            restoreState = true
-        }
-        viewModel.consumeKirariAuthenticatedProvider()
     }
 
     DisposableEffect(lifecycleOwner, context) {
@@ -525,14 +506,9 @@ fun HanakoApp(viewModel: AppViewModel) {
                         if (provider != null) {
                         val connectionTestStates by viewModel.connectionTestManager.states.collectAsState()
                         val connectionTestState = connectionTestStates[provider.id] ?: ConnectionTestState()
-                        val providerMetaState by viewModel.providerMetaState.collectAsState()
-                        val kirariAccountState by viewModel.kirariAccountState.collectAsState()
                         ProviderDetailScreen(
                             provider = provider,
                             connectionTestState = connectionTestState,
-                            providerMetaState = providerMetaState,
-                            kirariAccountState = kirariAccountState,
-                            hasKirariClientId = viewModel.hasKirariClientId(),
                             onUpdateProvider = viewModel::updateProvider,
                             onViewModels = {
                                 modelSelectionDialogState = modelSelectionDialogState.copy(
@@ -540,19 +516,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                                 )
                             },
                             onTestConnection = viewModel::testProviderConnection,
-                            onClearConnectionTest = { viewModel.resetConnectionTest(provider.id) },
-                            onLoadProviderMeta = viewModel::loadProviderMeta,
-                            onClearProviderMeta = viewModel::resetProviderMeta,
-                            shouldSuggestKirariAutoSetup = viewModel.shouldSuggestKirariAutoSetup(settings, providerMetaState),
-                            onApplyKirariAutoSetup = viewModel::applyKirariAutoSetup,
-                            onLoginKirari = {
-                                viewModel.startKirariLogin { authorizationUrl ->
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(authorizationUrl))
-                                    )
-                                }
-                            },
-                            onLogoutKirari = viewModel::logoutKirari
+                            onClearConnectionTest = { viewModel.resetConnectionTest(provider.id) }
                         )
                     } else {
                         LaunchedEffect(Unit) { navController.popBackStack() }
@@ -609,8 +573,6 @@ fun HanakoApp(viewModel: AppViewModel) {
                             automationSettings = settings.automation,
                             selectedMethod = settings.screenCaptureMethod,
                             trustAllHttpsCertificates = settings.trustAllHttpsCertificates,
-                            kirariSettings = settings.kirari,
-                            hasKirariClientId = viewModel.hasKirariClientId(),
                             hasNotificationPermission = hasNotificationPermission,
                             onToggleCompletionNotification = { enabled ->
                                 viewModel.updateAutomationSettings {
@@ -646,18 +608,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                                     it.copy(autoModeTimeoutSeconds = seconds)
                                 }
                             },
-                            onToggleTrustAllHttpsCertificates = viewModel::setTrustAllHttpsCertificates,
-                            onUpdateKirariServerUrl = { serverUrl ->
-                                viewModel.updateKirariSettings { it.copy(serverUrl = serverUrl.trim()) }
-                            },
-                            onLoginKirari = {
-                                viewModel.startKirariLogin { authorizationUrl ->
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(authorizationUrl))
-                                    )
-                                }
-                            },
-                            onLogoutKirari = viewModel::logoutKirari
+                            onToggleTrustAllHttpsCertificates = viewModel::setTrustAllHttpsCertificates
                         )
                     }
                     composable(ROUTE_SETTINGS_STATIC_VIBRATION) {

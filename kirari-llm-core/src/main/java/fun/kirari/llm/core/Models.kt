@@ -13,8 +13,7 @@ enum class ProviderKind {
     OPENAI_COMPATIBLE,
     OPENAI_RESPONSES,
     ANTHROPIC,
-    GOOGLE,
-    KIRARI_NETWORK
+    GOOGLE
 }
 
 data class ProviderConfig(

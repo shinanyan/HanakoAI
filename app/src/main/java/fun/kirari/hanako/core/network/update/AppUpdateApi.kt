@@ -100,14 +100,16 @@ internal class AppUpdateApi(
     }
 
     private companion object {
-        private const val LATEST_RELEASE_URL = "https://api.github.com/repos/zyf2007/HanakoAI/releases/latest"
-        private const val README_RAW_URL = "https://raw.githubusercontent.com/zyf2007/HanakoAI/main/README.md"
+        private const val LATEST_RELEASE_URL = "https://api.github.com/repos/shinanyan/HanakoAI/releases/latest"
+        private const val README_RAW_URL = "https://raw.githubusercontent.com/shinanyan/HanakoAI/main/README.md"
         private const val TIMEOUT_MILLIS = 12_000L
     }
 }
 
 internal fun extractReadmeUpdateInfo(markdown: String, currentVersion: String): AppUpdateInfo? {
-    val download = Regex("""\[\[Download\s+([^\]]+)]\(([^)]+)\)]""", RegexOption.IGNORE_CASE)
+    // README 的 Download 行可能带括号后缀（例如 "0.0.19-alpha (fork · debug)"），
+    // 版本号只取第一个空白之前的部分，避免把后缀渲染进更新弹窗。
+    val download = Regex("""\[\[Download\s+(v?\d[\w.+-]*)[^\]]*]\(([^)]+)\)]""", RegexOption.IGNORE_CASE)
         .find(markdown)
         ?: return null
     val version = download.groupValues[1].trim()

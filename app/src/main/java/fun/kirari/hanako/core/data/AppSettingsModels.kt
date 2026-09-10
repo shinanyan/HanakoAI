@@ -1,6 +1,5 @@
 package `fun`.kirari.hanako.core.data
 
-import `fun`.kirari.hanako.BuildConfig
 import `fun`.kirari.hanako.core.model.ProcessingResult
 import `fun`.kirari.hanako.core.model.ProcessingRoute
 import `fun`.kirari.hanako.core.model.withStableAnswerVersionIds
@@ -29,13 +28,6 @@ enum class ModelPurpose {
     VISION
 }
 
-enum class KirariModelTag {
-    TEXT,
-    OCR,
-    MULTIMODAL,
-    FALLBACK
-}
-
 @Serializable
 data class ModelSelection(
     val providerId: String? = null,
@@ -44,34 +36,9 @@ data class ModelSelection(
 
 const val LOCAL_OCR_PROVIDER_ID = "__local_mlkit__"
 const val LOCAL_OCR_MODEL_ID = "mlkit_chinese_ocr"
-const val KIRARI_PROVIDER_ID = "__kirari_network__"
 
-@Serializable
-data class KirariSettings(
-    val serverUrl: String = BuildConfig.KIRARI_SERVER_URL,
-    val auth: KirariAuthState = KirariAuthState(),
-    val profile: KirariUserProfile = KirariUserProfile()
-)
-
-@Serializable
-data class KirariAuthState(
-    val accessToken: String = "",
-    val refreshToken: String = "",
-    val idToken: String = "",
-    val tokenType: String = "Bearer",
-    val scope: String = "",
-    val accessTokenExpiresAtMillis: Long = 0L
-)
-
-@Serializable
-data class KirariUserProfile(
-    val subject: String = "",
-    val email: String = "",
-    val name: String = "",
-    val preferredUsername: String = "",
-    val nickname: String = "",
-    val lastSyncedAtMillis: Long = 0L
-)
+/** v0.0.19 及以前把模型选择写到网关时使用的 providerId，仅用于升级迁移，勿改值。 */
+private const val LEGACY_GATEWAY_PROVIDER_ID = "__kirari_network__"
 
 @Serializable
 data class LocalOcrSettings(
@@ -88,7 +55,6 @@ val ProviderKind.displayName: String
         ProviderKind.OPENAI_RESPONSES -> "OpenAI Responses"
         ProviderKind.ANTHROPIC -> "Anthropic"
         ProviderKind.GOOGLE -> "Google Gemini"
-        ProviderKind.KIRARI_NETWORK -> "The Kirari Network"
     }
 
 val ProviderKind.defaultBaseUrl: String
@@ -97,7 +63,6 @@ val ProviderKind.defaultBaseUrl: String
         ProviderKind.OPENAI_RESPONSES -> "https://api.openai.com/v1"
         ProviderKind.ANTHROPIC -> "https://api.anthropic.com/v1"
         ProviderKind.GOOGLE -> "https://generativelanguage.googleapis.com/v1beta"
-        ProviderKind.KIRARI_NETWORK -> ""
     }
 
 val ProviderKind.requestPathSuffix: String
@@ -106,14 +71,11 @@ val ProviderKind.requestPathSuffix: String
         ProviderKind.OPENAI_RESPONSES -> "/responses"
         ProviderKind.ANTHROPIC -> "/messages"
         ProviderKind.GOOGLE -> "/models"
-        ProviderKind.KIRARI_NETWORK -> "/api/llm/chat/completions"
     }
 
 fun ModelProviderConfig.requestPreviewUrl(): String = "${baseUrl.trimEnd('/')}${kind.requestPathSuffix}"
 
-fun creatableProviderKinds(): List<ProviderKind> = ProviderKind.entries.filterNot { it == ProviderKind.KIRARI_NETWORK }
-
-fun isProtectedKirariProvider(providerId: String): Boolean = providerId == KIRARI_PROVIDER_ID
+fun creatableProviderKinds(): List<ProviderKind> = ProviderKind.entries
 
 @Serializable
 data class AssistantPreset(
@@ -213,7 +175,6 @@ data class AppSettings(
     val visionModelSelection: ModelSelection = ModelSelection(),
     val ocrModelSelection: ModelSelection = ModelSelection(),
     val localOcr: LocalOcrSettings = LocalOcrSettings(),
-    val kirari: KirariSettings = KirariSettings(),
     val webSearch: WebSearchSettings = WebSearchSettings(),
     val lastResult: ProcessingResult? = null,
     val history: List<ProcessingResult> = emptyList(),
@@ -222,17 +183,6 @@ data class AppSettings(
 )
 
 fun defaultProvider(): ModelProviderConfig = ModelProviderConfig()
-
-fun kirariProvider(settings: KirariSettings = KirariSettings()): ModelProviderConfig = ModelProviderConfig(
-    id = KIRARI_PROVIDER_ID,
-    name = "The Kirari Network",
-    kind = ProviderKind.KIRARI_NETWORK,
-    baseUrl = settings.serverUrl.trim(),
-    apiKey = settings.auth.accessToken,
-    chatModel = "",
-    visionModel = "",
-    ocrModel = ""
-)
 
 fun defaultAssistants(): List<AssistantPreset> = listOf(defaultAssistant())
 
@@ -290,14 +240,7 @@ fun AppSettings.modelSelectionFor(purpose: ModelPurpose): ModelSelection = when 
     ModelPurpose.VISION -> visionModelSelection
 }
 
-fun AppSettings.availableProviders(): List<ModelProviderConfig> {
-    val custom = providers.filterNot { it.id == KIRARI_PROVIDER_ID }
-    return if (BuildConfig.SHOW_KIRARI_ENTRY) {
-        listOf(kirariProvider(kirari)) + custom
-    } else {
-        custom
-    }
-}
+fun AppSettings.availableProviders(): List<ModelProviderConfig> = providers
 
 fun AppSettings.resolveModelProvider(purpose: ModelPurpose): ModelProviderConfig? {
     val selection = modelSelectionFor(purpose)
@@ -315,16 +258,11 @@ fun AppSettings.resolveModelName(purpose: ModelPurpose): String {
 }
 
 fun AppSettings.normalize(): AppSettings {
-    val normalizedProviders = providers.filterNot { it.id == KIRARI_PROVIDER_ID }
     val normalizedAssistants = normalizeAssistants(
         assistants = assistants,
         selectedAssistantId = selectedAssistantId
     )
-    val normalizedKirari = kirari.normalize()
-    val availableProviders = copy(
-        providers = normalizedProviders,
-        kirari = normalizedKirari
-    ).availableProviders()
+    val availableProviders = providers
     val fallbackProvider = availableProviders.firstOrNull { it.id == selectedProviderId } ?: availableProviders.firstOrNull()
     val normalizedGroups = historyGroups
         .map { it.copy(name = it.name.normalizedHistoryGroupName()) }
@@ -342,25 +280,23 @@ fun AppSettings.normalize(): AppSettings {
         .normalizedHistoryMetadata()
     return copy(
         schemaVersion = maxOf(schemaVersion, StorageSchema.CURRENT_APP_DATA_VERSION),
-        providers = normalizedProviders,
         automation = automation.normalize(),
-        kirari = normalizedKirari,
         selectedProviderId = selectedProviderId
             ?.takeIf { candidate -> availableProviders.any { it.id == candidate } }
             ?: fallbackProvider?.id,
         assistants = normalizedAssistants.assistants,
         selectedAssistantId = normalizedAssistants.selectedAssistantId,
-        textModelSelection = textModelSelection.normalize(
+        textModelSelection = textModelSelection.dropLegacyGatewaySelection().normalize(
             providers = availableProviders,
             fallbackProvider = fallbackProvider,
             fallbackModel = fallbackProvider?.chatModel.orEmpty()
         ),
-        visionModelSelection = visionModelSelection.normalize(
+        visionModelSelection = visionModelSelection.dropLegacyGatewaySelection().normalize(
             providers = availableProviders,
             fallbackProvider = fallbackProvider,
             fallbackModel = fallbackProvider?.visionModel.orEmpty()
         ),
-        ocrModelSelection = ocrModelSelection.normalize(
+        ocrModelSelection = ocrModelSelection.dropLegacyGatewaySelection().normalize(
             providers = availableProviders,
             fallbackProvider = fallbackProvider,
             fallbackModel = fallbackProvider?.ocrModel?.ifBlank {
@@ -395,19 +331,13 @@ private fun BubbleAppearanceSettings.normalize(): BubbleAppearanceSettings {
     )
 }
 
-private fun KirariSettings.normalize(): KirariSettings {
-    val resolvedServerUrl = serverUrl
-        .trim()
-        .prependHttpSchemeIfMissing()
-        .ifBlank { BuildConfig.KIRARI_SERVER_URL.trim() }
-    return copy(serverUrl = resolvedServerUrl)
-}
-
-private fun String.prependHttpSchemeIfMissing(): String {
-    val trimmed = trim()
-    if (trimmed.isBlank()) return ""
-    return if ("://" in trimmed) trimmed else "http://$trimmed"
-}
+/**
+ * v0.0.19 及以前，模型选择可能指向已移除的网关提供方。只改 providerId 会保留
+ * `kirari-text` 这类网关模型名，用户拿自己的 Key 请求必然失败，因此整条选择清空，
+ * 交给通用 normalize 回落到用户自己的提供方模型。
+ */
+private fun ModelSelection.dropLegacyGatewaySelection(): ModelSelection =
+    if (providerId == LEGACY_GATEWAY_PROVIDER_ID) ModelSelection() else this
 
 private data class NormalizedAssistants(
     val assistants: List<AssistantPreset>,
@@ -473,11 +403,3 @@ private fun fallbackModelFrom(provider: ModelProviderConfig, fallbackModel: Stri
 }
 
 fun ModelSelection.isLocalOcrSelection(): Boolean = providerId == LOCAL_OCR_PROVIDER_ID
-
-fun String.toKirariModelTag(): KirariModelTag? = when (trim().lowercase()) {
-    "text" -> KirariModelTag.TEXT
-    "ocr" -> KirariModelTag.OCR
-    "multimodal" -> KirariModelTag.MULTIMODAL
-    "fallback" -> KirariModelTag.FALLBACK
-    else -> null
-}

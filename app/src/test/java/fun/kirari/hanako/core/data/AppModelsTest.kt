@@ -80,7 +80,7 @@ class AppModelsTest {
     }
 
     @Test
-    fun normalize_clampsAutomationValuesAndPrependsKirariScheme() {
+    fun normalize_clampsAutomationValues() {
         val normalized = AppSettings(
             automation = AutomationSettings(
                 autoModeTimeoutSeconds = 0,
@@ -91,8 +91,7 @@ class AppModelsTest {
                     letterOpacity = -5f,
                     overallOpacity = 120f
                 )
-            ),
-            kirari = KirariSettings(serverUrl = "example.com")
+            )
         ).normalize()
 
         assertEquals(1, normalized.automation.autoModeTimeoutSeconds)
@@ -101,7 +100,6 @@ class AppModelsTest {
         assertEquals(MAX_BUBBLE_LETTER_TEXT_SIZE_DP, normalized.automation.bubbleAppearance.letterTextSizeDp, 0f)
         assertEquals(0f, normalized.automation.bubbleAppearance.letterOpacity, 0f)
         assertEquals(100f, normalized.automation.bubbleAppearance.overallOpacity, 0f)
-        assertEquals("http://example.com", normalized.kirari.serverUrl)
     }
 
     @Test
@@ -170,7 +168,7 @@ class AppModelsTest {
             selectedProviderId = "missing"
         ).normalize()
 
-        assertEquals(KIRARI_PROVIDER_ID, normalized.selectedProviderId)
+        assertEquals(provider.id, normalized.selectedProviderId)
     }
 
     @Test
@@ -184,11 +182,13 @@ class AppModelsTest {
     }
 
     @Test
-    fun availableProviders_includesKirariProviderWhenEnabled() {
-        val providers = AppSettings().availableProviders()
+    fun availableProviders_containsOnlyUserConfiguredProviders() {
+        val settings = AppSettings()
 
-        assertTrue(providers.isNotEmpty())
-        assertEquals(KIRARI_PROVIDER_ID, providers.first().id)
+        val providers = settings.availableProviders()
+
+        assertEquals(1, providers.size)
+        assertEquals(settings.providers.single().id, providers.single().id)
     }
 
     @Test

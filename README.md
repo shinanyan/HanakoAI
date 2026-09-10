@@ -7,6 +7,7 @@
 > 3. **截图隔离**：开始新一轮截图或进入多图截图前，浮层会同步隐藏，不会被截进下一张图。
 > 4. **文本题连点修复**：文本题答完后单击悬浮球即可直接开始下一题。
 > 5. **CI**：`.github/workflows/build.yml` 每次推送自动跑 `./gradlew test` 与 `./gradlew assembleDebug`，产物在 Actions artifacts 中。
+> 6. **移除作者自建 AI 服务**：删除 The Kirari Network 账号登录与 LLM 网关，应用只使用用户自己填写的 API Base URL 与 API Key；「检查更新」改指向本 fork 仓库。
 >
 > 全部改动见 [与上游的对比](https://github.com/shinanyan/HanakoAI/compare/2762037...main)；下文保留上游原始说明。
 
@@ -34,7 +35,7 @@ Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可
 - 支持历史记录查看、删除、重新生成，并把截图保存到应用私有文件。
 - 支持联网搜索工具，由模型按需调用 `web_search` 后把搜索结果注入上下文。
 - 支持应用内检查更新，在首页标题旁提示新版本。
-- 支持 The Kirari Network OIDC 登录和 Kirari LLM 网关，也支持自定义模型提供方。
+- 支持自定义模型提供方，API Base URL 与 API Key 由用户自己填写。
 
 ## 使用方式
 
@@ -127,7 +128,7 @@ Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可
 - **模型设置**：分别为 OCR、文本、多模态任务指定提供方和模型，可收藏常用模型或手动输入模型名。
 - **联网搜索**：配置搜索开关、自动模式是否允许搜索、搜索引擎、API URL、API Key 和 Tavily 额度查询。
 - **助手配置**：管理助手名称、OCR 提示词、文本提示词和多模态提示词。
-- **更多**：配置悬浮球外观、扇形菜单、自动模式、静态振动、截图方式、网络兼容和 The Kirari Network。
+- **更多**：配置悬浮球外观、扇形菜单、自动模式、静态振动、截图方式和网络兼容。
 
 当前支持的模型提供方类型：
 
@@ -135,7 +136,6 @@ Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可
 - OpenAI Responses
 - Anthropic
 - Google Gemini
-- The Kirari Network
 
 ## 联网搜索
 
@@ -163,7 +163,6 @@ Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可
 - MediaProjection / Shizuku 完成截屏
 - 前台服务承载悬浮窗
 - `kirari-llm-core` 封装多提供方 LLM 适配器与工具调用格式
-- `kirari-auth-core` 封装 OIDC PKCE 登录流程
 
 主要目录：
 
@@ -173,7 +172,6 @@ Hanako 把截图、识题、解题、复制/填写这几个步骤压缩到尽可
 - [app/src/main/java/fun/kirari/hanako/network](app/src/main/java/fun/kirari/hanako/network)
 - [app/src/main/java/fun/kirari/hanako/workflow](app/src/main/java/fun/kirari/hanako/workflow)
 - [kirari-llm-core](kirari-llm-core)
-- [kirari-auth-core](kirari-auth-core)
 
 ## 本地构建
 

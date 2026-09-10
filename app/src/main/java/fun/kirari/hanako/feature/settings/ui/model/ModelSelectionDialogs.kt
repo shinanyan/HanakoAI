@@ -311,7 +311,7 @@ private fun LiteDownloadDialogHost(
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/zyf2007/HanakoAI")
+                            Uri.parse("https://github.com/shinanyan/HanakoAI")
                         )
                     )
                 }

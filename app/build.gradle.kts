@@ -34,19 +34,6 @@ fun quoteBuildConfig(value: String): String = buildString {
     append('"')
 }
 
-val kirariOidcClientId = gradleStringProperty(
-    name = "hanakoKirariOidcClientId",
-    envName = "HANAKO_KIRARI_OIDC_CLIENT_ID"
-)
-val kirariServerUrl = gradleStringProperty(
-    name = "hanakoKirariServerUrl",
-    envName = "HANAKO_KIRARI_SERVER_URL"
-)
-val kirariServerUrlEditable = gradleBooleanProperty(
-    name = "hanakoKirariServerUrlEditable",
-    envName = "HANAKO_KIRARI_SERVER_URL_EDITABLE",
-    default = true
-)
 val showDebugLogs = gradleBooleanProperty(
     name = "hanakoShowDebugLogs",
     envName = "HANAKO_SHOW_DEBUG_LOGS",
@@ -56,11 +43,6 @@ val verboseLlmLogs = gradleBooleanProperty(
     name = "hanakoVerboseLlmLogs",
     envName = "HANAKO_VERBOSE_LLM_LOGS",
     default = false
-)
-val showKirariEntry = gradleBooleanProperty(
-    name = "hanakoShowKirariEntry",
-    envName = "HANAKO_SHOW_KIRARI_ENTRY",
-    default = true
 )
 
 plugins {
@@ -83,12 +65,8 @@ android {
         versionCode = 19
         versionName = "0.0.19-alpha"
 
-        buildConfigField("String", "KIRARI_OIDC_CLIENT_ID", quoteBuildConfig(kirariOidcClientId))
-        buildConfigField("String", "KIRARI_SERVER_URL", quoteBuildConfig(kirariServerUrl))
-        buildConfigField("boolean", "KIRARI_SERVER_URL_EDITABLE", kirariServerUrlEditable.toString())
         buildConfigField("boolean", "SHOW_DEBUG_LOGS", showDebugLogs.toString())
         buildConfigField("boolean", "VERBOSE_LLM_LOGS", verboseLlmLogs.toString())
-        buildConfigField("boolean", "SHOW_KIRARI_ENTRY", showKirariEntry.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -170,7 +148,6 @@ android {
 
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(project(":kirari-auth-core"))
     implementation(project(":kirari-llm-core"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
