@@ -23,14 +23,7 @@ sealed class BubbleState {
     data class MultiPageCapture(
         val capturedBitmaps: List<Bitmap> = emptyList(),
         val captureCount: Int = 0
-    ) : BubbleState() {
-        fun addCapture(bitmap: Bitmap): MultiPageCapture {
-            return copy(
-                capturedBitmaps = capturedBitmaps + bitmap,
-                captureCount = captureCount + 1
-            )
-        }
-    }
+    ) : BubbleState()
 
     /** 多页截图模式 - 正在截图 */
     data class MultiPageCapturing(

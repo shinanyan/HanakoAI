@@ -6,10 +6,12 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import `fun`.kirari.hanako.core.debug.AppDebugLogStore
 import `fun`.kirari.hanako.core.model.migrateBase64ToFile
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -53,6 +55,9 @@ class SettingsStore(private val context: Context) {
                 flow { emit(appSettings) }
             }
         }
+        // 反序列化整份设置（含全部历史与 base64 截图）以及历史图片迁移都是重活，
+        // 必须在 IO 线程执行：collector 大多是 viewModelScope（Main.immediate）。
+        .flowOn(Dispatchers.IO)
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         context.dataStore.edit { preferences ->

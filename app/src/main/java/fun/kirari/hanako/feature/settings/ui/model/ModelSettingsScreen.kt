@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +35,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import `fun`.kirari.hanako.core.data.AppSettings
 import `fun`.kirari.hanako.core.data.LOCAL_OCR_PROVIDER_ID
@@ -205,10 +203,4 @@ private fun purposeIcon(purpose: ModelPurpose): ImageVector = when (purpose) {
     ModelPurpose.OCR -> Icons.Outlined.DocumentScanner
     ModelPurpose.TEXT -> Icons.AutoMirrored.Outlined.Chat
     ModelPurpose.VISION -> Icons.Outlined.Image
-}
-
-private fun purposeHint(purpose: ModelPurpose): String = when (purpose) {
-    ModelPurpose.OCR -> "从屏幕截图中识别文字"
-    ModelPurpose.TEXT -> "生成解答与文本推理"
-    ModelPurpose.VISION -> "理解并分析图像内容"
 }

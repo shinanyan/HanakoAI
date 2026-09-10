@@ -2,51 +2,30 @@ package `fun`.kirari.hanako.feature.overlay.ui
 
 import `fun`.kirari.hanako.feature.overlay.ui.AssistantSwitchDirection
 
-import `fun`.kirari.hanako.feature.overlay.state.AutoRunState
-import `fun`.kirari.hanako.platform.capture.CaptureLaunchMode
-import `fun`.kirari.hanako.feature.overlay.state.OverlaySheetMode
 import `fun`.kirari.hanako.feature.overlay.state.OverlayUiState
 
 import android.graphics.Bitmap
-import android.widget.Toast
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -64,34 +42,19 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import `fun`.kirari.hanako.R
-import `fun`.kirari.hanako.platform.clipboard.copyToClipboardWithToast
-import `fun`.kirari.hanako.core.data.AssistantPreset
-import `fun`.kirari.hanako.core.data.previewPrompt
-import `fun`.kirari.hanako.core.data.ModelProviderConfig
 import `fun`.kirari.hanako.core.data.ModelPurpose
 import `fun`.kirari.hanako.core.data.ModelSelection
 import `fun`.kirari.hanako.core.data.availableProviders
 import `fun`.kirari.hanako.core.model.ProcessingRoute
-import `fun`.kirari.hanako.core.data.displayName
 import `fun`.kirari.hanako.core.data.resolveModelName
 import `fun`.kirari.hanako.core.data.resolveModelProvider
 import `fun`.kirari.hanako.core.network.ProviderModelsApi
-import `fun`.kirari.hanako.feature.settings.ui.model.components.ModelPickerListContent
-import `fun`.kirari.hanako.feature.settings.ui.model.components.ModelPickerSurfaceItem
-import `fun`.kirari.hanako.feature.settings.ui.model.components.rememberModelPickerState
 import `fun`.kirari.hanako.core.ui.image.cropBitmap
-import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 @Composable
@@ -117,7 +80,6 @@ internal fun CropOverlaySheet(
     var cropPromptVisible by remember { mutableStateOf(true) }
     val density = LocalDensity.current
     val selectedAssistant = uiState.settings.assistants.firstOrNull { it.id == uiState.settings.selectedAssistantId }
-    val routeText = if (uiState.settings.processingRoute == ProcessingRoute.OCR_THEN_LLM) "OCR模式" else "多模态模式"
     val ocrProvider = uiState.settings.resolveModelProvider(ModelPurpose.OCR)
     val ocrModel = uiState.settings.resolveModelName(ModelPurpose.OCR)
     val llmPurpose = if (uiState.settings.processingRoute == ProcessingRoute.OCR_THEN_LLM) ModelPurpose.TEXT else ModelPurpose.VISION

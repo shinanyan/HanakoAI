@@ -22,11 +22,13 @@ import `fun`.kirari.hanako.core.debug.AppDebugLogStore
 import `fun`.kirari.hanako.core.network.ProviderModelsApi
 import `fun`.kirari.hanako.platform.clipboard.copyToClipboardWithToast
 import `fun`.kirari.hanako.solve.application.SolveOperations
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal class OverlayViewModel(
     private val appContext: Context,
@@ -129,7 +131,9 @@ internal class OverlayViewModel(
         }
         viewModelScope.launch {
             runCatching {
-                `fun`.kirari.hanako.platform.capture.ScreenCaptureManager.captureLatestBitmap(appContext, _uiState.value.settings.screenCaptureMethod)
+                withContext(Dispatchers.IO) {
+                    `fun`.kirari.hanako.platform.capture.ScreenCaptureManager.captureLatestBitmap(appContext, _uiState.value.settings.screenCaptureMethod)
+                }
             }.onSuccess { bitmap ->
                 AppDebugLogStore.i(tag, "openCropSheet capture success width=${bitmap.width} height=${bitmap.height}")
                 _uiState.update {
@@ -190,7 +194,7 @@ internal class OverlayViewModel(
         interactionController.consumePendingVibrationLetters()
     }
 
-    fun presentAutomationEffect(result: `fun`.kirari.hanako.core.model.ProcessingResult) {
+    suspend fun presentAutomationEffect(result: `fun`.kirari.hanako.core.model.ProcessingResult) {
         autoProcessingController.presentAutomationEffect(result)
     }
 

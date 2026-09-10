@@ -410,13 +410,6 @@ internal class WorkflowTaskManager(
         return resultStore.latest(historyId)
     }
 
-    suspend fun updateHistoryResult(
-        historyId: String,
-        transform: (ProcessingResult) -> ProcessingResult
-    ): ProcessingResult? {
-        return resultStore.update(historyId, transform)
-    }
-
     suspend fun claimAutomationAction(historyId: String): ProcessingResult? {
         return automationDeliveryMutex.withLock {
             val current = resultStore.latest(historyId)

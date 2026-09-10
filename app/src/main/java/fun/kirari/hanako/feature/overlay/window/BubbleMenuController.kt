@@ -100,6 +100,4 @@ internal class BubbleMenuController(
         }
         menuView = null
     }
-
-    fun isVisible(): Boolean = menuView != null
 }

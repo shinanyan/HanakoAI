@@ -13,10 +13,12 @@ import `fun`.kirari.hanako.core.model.loadHistoryBitmaps
 import `fun`.kirari.hanako.solve.runtime.WorkflowTaskManager
 import `fun`.kirari.hanako.solve.workflow.ProcessingPipeline
 import android.graphics.Bitmap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withContext
 
 internal data class SolveTaskSnapshot(
     val task: WorkflowTaskState,
@@ -69,7 +71,7 @@ internal class SolveOperations(
 
     suspend fun regenerate(settings: AppSettings, historyId: String): SolveTaskHandle? {
         val existing = taskManager.latestHistoryResult(historyId) ?: return null
-        val bitmaps = existing.loadHistoryBitmaps()
+        val bitmaps = withContext(Dispatchers.IO) { existing.loadHistoryBitmaps() }
         return runCatching { regenerate(settings, existing, bitmaps) }
             .getOrElse { error ->
                 AppDebugLogStore.e(tag, "regenerate start failed historyId=$historyId", error)

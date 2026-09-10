@@ -1,6 +1,5 @@
 package `fun`.kirari.hanako.core.network
 
-internal typealias ToolParam = `fun`.kirari.llm.core.ToolParam
 internal typealias ToolDef = `fun`.kirari.llm.core.ToolDef
 
 internal object ToolRegistry {

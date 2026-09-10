@@ -13,7 +13,9 @@ data class AppDebugLogEntry(
     val timestamp: Long,
     val level: String,
     val tag: String,
-    val message: String
+    val message: String,
+    /** 单调递增序号，用作列表的稳定 key（timestamp 可能重复）。 */
+    val seq: Long = 0L
 )
 
 object AppDebugLogStore {
@@ -23,6 +25,7 @@ object AppDebugLogStore {
     private val timeFormatter = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
     private val _entries = MutableStateFlow<List<AppDebugLogEntry>>(emptyList())
     val entries: StateFlow<List<AppDebugLogEntry>> = _entries.asStateFlow()
+    private var sequence = 0L
 
     fun v(tag: String, message: String) {
         if (!verboseLlmEnabled) return
@@ -75,7 +78,8 @@ object AppDebugLogStore {
             timestamp = System.currentTimeMillis(),
             level = level,
             tag = tag,
-            message = message
+            message = message,
+            seq = ++sequence
         )
         _entries.value = (_entries.value + entry).takeLast(maxEntries)
     }

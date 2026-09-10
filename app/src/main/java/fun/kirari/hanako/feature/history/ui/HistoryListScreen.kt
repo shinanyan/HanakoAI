@@ -7,9 +7,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -88,10 +86,11 @@ import `fun`.kirari.hanako.core.data.historyDisplayTitle
 import `fun`.kirari.hanako.core.model.ProcessingResult
 import `fun`.kirari.hanako.core.model.ProcessingStatus
 import `fun`.kirari.hanako.core.model.decodeHistoryBitmap
-import `fun`.kirari.hanako.core.model.loadHistoryBitmap
 import `fun`.kirari.hanako.feature.home.presentation.RegisterScrollToTopHandler
 import `fun`.kirari.hanako.core.ui.components.SectionCard
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,6 +130,8 @@ fun HistorySubScreen(
         }
     }
     val metadataById = remember(settings.historyMetadata) { settings.historyMetadata.associateBy { it.historyId } }
+    // historyStorageBytes 会对每条记录做 File.length()，不能在每次重组时重算。
+    val historyStorageText = remember(history) { formatHistorySize(historyStorageBytes(history)) }
 
     BackHandler(enabled = pagerState.currentPage != 0 || selectionMode) {
         when {
@@ -173,7 +174,7 @@ fun HistorySubScreen(
                 item {
                     HistoryListHeader(
                         title = "全部记录",
-                        storageText = formatHistorySize(historyStorageBytes(history)),
+                        storageText = historyStorageText,
                         clearEnabled = history.isNotEmpty() && !selectionMode,
                         selectionMode = selectionMode,
                         selectedCount = selectedIds.size,
@@ -251,7 +252,9 @@ fun HistorySubScreen(
     groupPickerTargetIds?.let { targetIds ->
         GroupPickerSheet(
             groups = settings.historyGroups,
-            initial = targetIds.flatMap { id -> settings.historyMetadataFor(history.first { it.id == id }).groupIds }.toSet(),
+            initial = remember(targetIds, metadataById) {
+                targetIds.flatMap { id -> metadataById[id]?.groupIds.orEmpty() }.toSet()
+            },
             onDismiss = { groupPickerTargetIds = null },
             onConfirm = { groupIds -> onSetGroups(targetIds, groupIds) {}; groupPickerTargetIds = null },
             onCreateGroup = { showCreateGroup = true }
@@ -322,9 +325,17 @@ private fun HistoryListItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val thumbnail = remember(result.screenshotPath, result.screenshotBase64) { result.screenshotPath?.loadHistoryBitmap() ?: result.screenshotBase64?.decodeHistoryBitmap() }
+    val thumbnailPath = result.screenshotPath
+    val legacyThumbnail = remember(thumbnailPath, result.screenshotBase64) {
+        if (thumbnailPath == null) result.screenshotBase64?.decodeHistoryBitmap() else null
+    }
     val metadata = settings.historyMetadataFor(result)
     val title = settings.historyDisplayTitle(result)
+    val timeText = remember(metadata.lastActivityAtMillis) { formatHistoryDateTime(metadata.lastActivityAtMillis) }
+    val metaLine = remember(result.route, result.lastSearchAtMillis) { buildHistoryMetaLine(result) }
+    val previewText = remember(result.detail, result.status, result.automationAction, result.automationThought, result.answerVersions, result.answer) {
+        historyPreviewText(result)
+    }
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(20.dp),
@@ -340,14 +351,23 @@ private fun HistoryListItem(
                     StatusIcon(result.status)
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.weight(1f))
-                    Text(formatHistoryDateTime(metadata.lastActivityAtMillis), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(timeText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(buildHistoryMetaLine(result), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(historyPreviewText(result), style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(metaLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(previewText, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Surface(modifier = Modifier.size(width = 72.dp, height = 92.dp), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                if (thumbnail != null) Image(thumbnail.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(Icons.Default.Memory, null, tint = MaterialTheme.colorScheme.outline) }
+                when {
+                    // 列表缩略图交给 Coil 异步解码，避免在滚动时于主线程解码整张截图。
+                    thumbnailPath != null -> AsyncImage(
+                        model = File(thumbnailPath),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    legacyThumbnail != null -> Image(legacyThumbnail.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(Icons.Default.Memory, null, tint = MaterialTheme.colorScheme.outline) }
+                }
             }
         }
     }
@@ -476,9 +496,12 @@ internal fun HistoryGroupDetailScreen(
     onLongPress: (ProcessingResult) -> Unit,
     onDismissPreview: () -> Unit
 ) {
-    val records = history.filter { result ->
-        if (groupId == "__ungrouped__") settings.historyMetadataFor(result).groupIds.isEmpty()
-        else groupId in settings.historyMetadataFor(result).groupIds
+    val metadataById = remember(settings.historyMetadata) { settings.historyMetadata.associateBy { it.historyId } }
+    val records = remember(history, groupId, metadataById) {
+        history.filter { result ->
+            val groupIds = metadataById[result.id]?.groupIds.orEmpty()
+            if (groupId == "__ungrouped__") groupIds.isEmpty() else groupId in groupIds
+        }
     }
     Column(Modifier.fillMaxSize()) {
         if (records.isEmpty()) {
@@ -512,16 +535,23 @@ internal fun HistoryGroupDetailScreen(
 }
 
 @Composable private fun GroupBrowser(groups: List<HistoryGroup>, history: List<ProcessingResult>, metadataById: Map<String, `fun`.kirari.hanako.core.data.HistoryRecordMetadata>, onSelectGroup: (String) -> Unit, onCreate: () -> Unit, onRename: (HistoryGroup) -> Unit, onDelete: (HistoryGroup) -> Unit) {
+    val groupCounts = remember(history, groups, metadataById) {
+        val ungrouped = history.count { metadataById[it.id]?.groupIds.isNullOrEmpty() }
+        val perGroup = groups.associate { group ->
+            group.id to history.count { group.id in metadataById[it.id]?.groupIds.orEmpty() }
+        }
+        ungrouped to perGroup
+    }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("管理分组", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
             TextButton(onClick = onCreate) { Text("新建分组", color = MaterialTheme.colorScheme.primary) }
         }
-        GroupRow("未分组", history.count { metadataById[it.id]?.groupIds.isNullOrEmpty() }, onClick = { onSelectGroup("__ungrouped__") })
+        GroupRow("未分组", groupCounts.first, onClick = { onSelectGroup("__ungrouped__") })
         groups.forEach { group ->
             Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                GroupRow(group.name, history.count { group.id in (metadataById[it.id]?.groupIds ?: emptyList()) }, onClick = { onSelectGroup(group.id) }, modifier = Modifier.weight(1f))
+                GroupRow(group.name, groupCounts.second[group.id] ?: 0, onClick = { onSelectGroup(group.id) }, modifier = Modifier.weight(1f))
                 IconButton(onClick = { onRename(group) }) { Icon(Icons.Default.Edit, "重命名 ${group.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 IconButton(onClick = { onDelete(group) }) { Icon(Icons.Default.DeleteOutline, "删除 ${group.name}", tint = MaterialTheme.colorScheme.error) }
             }

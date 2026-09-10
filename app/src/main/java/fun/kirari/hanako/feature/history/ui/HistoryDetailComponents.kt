@@ -34,8 +34,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.dp
 import `fun`.kirari.hanako.core.model.ProcessingEvent
-import `fun`.kirari.hanako.core.model.ContentAnchor
-import `fun`.kirari.hanako.core.model.QuotedFragment
 import `fun`.kirari.hanako.core.ui.richtext.MarkdownLatexText
 import kotlin.math.roundToInt
 
@@ -88,7 +86,7 @@ internal fun HistoryScreenshots(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp)
             ) {
-                itemsIndexed(screenshots) { index, bitmap ->
+                itemsIndexed(screenshots, key = { index, _ -> index }) { index, bitmap ->
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -146,11 +144,14 @@ internal fun HistoryMarkdownOrEmpty(
 
 internal fun searchStatusText(events: List<ProcessingEvent>): String? {
     val event = events.lastOrNull { it.title == "正在联网搜索" || it.title == "联网搜索完成" } ?: return null
-    val keyword = Regex("关键词：([^，]+)").find(event.detail)?.groupValues?.getOrNull(1)?.trim().orEmpty()
+    val keyword = SEARCH_KEYWORD_PATTERN.find(event.detail)?.groupValues?.getOrNull(1)?.trim().orEmpty()
     if (keyword.isBlank()) return null
-    val count = Regex("获取\\s*(\\d+)\\s*条结果").find(event.detail)?.groupValues?.getOrNull(1)
+    val count = SEARCH_RESULT_COUNT_PATTERN.find(event.detail)?.groupValues?.getOrNull(1)
     return if (count.isNullOrBlank()) "已搜索 $keyword" else "已搜索 $keyword（共${count}条结果）"
 }
+
+private val SEARCH_KEYWORD_PATTERN = Regex("关键词：([^，]+)")
+private val SEARCH_RESULT_COUNT_PATTERN = Regex("获取\\s*(\\d+)\\s*条结果")
 
 @Composable
 internal fun CopyTextButton(

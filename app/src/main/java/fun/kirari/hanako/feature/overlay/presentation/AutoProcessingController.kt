@@ -2,7 +2,6 @@ package `fun`.kirari.hanako.feature.overlay.presentation
 
 import `fun`.kirari.hanako.feature.overlay.state.AutoRunState
 import `fun`.kirari.hanako.platform.capture.CaptureLaunchMode
-import `fun`.kirari.hanako.feature.overlay.state.OverlaySheetMode
 import `fun`.kirari.hanako.feature.overlay.state.OverlayUiState
 
 import android.content.Context
@@ -228,9 +227,10 @@ internal class AutoProcessingController(
         activeWorkflowBitmap = null
     }
 
-    fun presentAutomationEffect(result: ProcessingResult) {
+    suspend fun presentAutomationEffect(result: ProcessingResult) {
         val action = result.automationAction ?: return
-        val firstBitmap = result.loadHistoryBitmaps().firstOrNull() ?: uiState.value.selectedBitmap
+        val firstBitmap = withContext(Dispatchers.IO) { result.loadHistoryBitmaps().firstOrNull() }
+            ?: uiState.value.selectedBitmap
         automationTrace(
             "applyAutomationAction type=${action.type} text=${action.text} thought=${result.automationThought} resultId=${result.id}"
         )

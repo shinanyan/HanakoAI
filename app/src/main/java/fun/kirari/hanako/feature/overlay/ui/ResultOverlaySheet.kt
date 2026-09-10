@@ -2,9 +2,6 @@ package `fun`.kirari.hanako.feature.overlay.ui
 
 import `fun`.kirari.hanako.core.ui.richtext.MarkdownLatexText
 
-import `fun`.kirari.hanako.feature.overlay.state.AutoRunState
-import `fun`.kirari.hanako.platform.capture.CaptureLaunchMode
-import `fun`.kirari.hanako.feature.overlay.state.OverlaySheetMode
 import `fun`.kirari.hanako.feature.overlay.state.OverlayUiState
 
 import androidx.compose.foundation.Image
@@ -277,15 +274,18 @@ private fun SmallHeaderAction(
 
 private fun searchStatusText(events: List<ProcessingEvent>): String? {
     val searchEvent = events.lastOrNull { it.title == "正在联网搜索" || it.title == "联网搜索完成" } ?: return null
-    val keyword = Regex("关键词：([^，]+)").find(searchEvent.detail)?.groupValues?.getOrNull(1)?.trim().orEmpty()
+    val keyword = SEARCH_KEYWORD_PATTERN.find(searchEvent.detail)?.groupValues?.getOrNull(1)?.trim().orEmpty()
     if (keyword.isBlank()) return null
-    val count = Regex("获取\\s*(\\d+)\\s*条结果").find(searchEvent.detail)?.groupValues?.getOrNull(1)
+    val count = SEARCH_RESULT_COUNT_PATTERN.find(searchEvent.detail)?.groupValues?.getOrNull(1)
     return if (count.isNullOrBlank()) {
         "已搜索 $keyword"
     } else {
         "已搜索 $keyword（共${count}条结果）"
     }
 }
+
+private val SEARCH_KEYWORD_PATTERN = Regex("关键词：([^，]+)")
+private val SEARCH_RESULT_COUNT_PATTERN = Regex("获取\\s*(\\d+)\\s*条结果")
 
 @Composable
 private fun LoadingLine(text: String) {

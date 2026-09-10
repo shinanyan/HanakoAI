@@ -7,7 +7,9 @@ sealed interface HistoryCommandResult {
     data class Invalid(val message: String) : HistoryCommandResult
 }
 
-internal fun String.normalizedHistoryGroupName(): String = trim().replace(Regex("\\s+"), " ")
+internal fun String.normalizedHistoryGroupName(): String = trim().replace(WHITESPACE_PATTERN, " ")
+
+private val WHITESPACE_PATTERN = Regex("\\s+")
 
 internal fun List<HistoryGroup>.hasNameConflict(name: String, excludingId: String? = null): Boolean {
     return any { it.id != excludingId && it.name.equals(name, ignoreCase = true) }

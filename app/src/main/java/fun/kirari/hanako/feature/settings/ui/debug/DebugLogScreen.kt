@@ -1,7 +1,5 @@
 package `fun`.kirari.hanako.feature.settings.ui.debug
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,8 +17,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +34,8 @@ fun DebugLogScreen(
     onClearLogs: () -> Unit
 ) {
     val context = LocalContext.current
-    val entries by AppDebugLogStore.entries.collectAsState()
+    val entries by AppDebugLogStore.entries.collectAsStateWithLifecycle()
+    val orderedEntries = remember(entries) { entries.asReversed() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -89,8 +89,8 @@ fun DebugLogScreen(
             }
         } else {
             itemsIndexed(
-                items = entries.reversed(),
-                key = { index, entry -> "${entry.timestamp}-${entry.tag}-${entry.message.hashCode()}-$index" }
+                items = orderedEntries,
+                key = { _, entry -> entry.seq }
             ) { _, entry ->
                 Surface(
                     shape = RoundedCornerShape(20.dp),

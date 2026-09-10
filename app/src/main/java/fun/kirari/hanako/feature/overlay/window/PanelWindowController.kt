@@ -7,10 +7,7 @@ import `fun`.kirari.hanako.feature.overlay.state.SheetDockOffset
 import `fun`.kirari.hanako.feature.overlay.presentation.OverlayViewModel
 import `fun`.kirari.hanako.feature.overlay.ui.OverlayPanel
 
-import `fun`.kirari.hanako.feature.overlay.state.AutoRunState
-import `fun`.kirari.hanako.platform.capture.CaptureLaunchMode
 import `fun`.kirari.hanako.feature.overlay.state.OverlaySheetMode
-import `fun`.kirari.hanako.feature.overlay.state.OverlayUiState
 
 import android.content.Context
 import android.graphics.Color
@@ -48,7 +45,6 @@ internal class PanelWindowController(
     private val viewModel: OverlayViewModel
 ) {
     private var panelView: FrameLayout? = null
-    private var panelContentView: ComposeView? = null
     private var panelHandleView: FrameLayout? = null
     private var panelParams: WindowManager.LayoutParams? = null
     private var panelHandleParams: WindowManager.LayoutParams? = null
@@ -92,7 +88,6 @@ internal class PanelWindowController(
             val panelRoot = createPanelRoot(composeView, targetHeightPx)
             val handleView = createPanelHandleView()
             panelView = panelRoot
-            panelContentView = composeView
             panelHandleView = handleView
             windowManager.addView(panelRoot, params)
             windowManager.addView(handleView, handleParams)
@@ -322,7 +317,6 @@ internal class PanelWindowController(
         removeWindowImmediately("handle", panelHandleView)
         removeWindowImmediately("panel", panelView)
         panelHandleView = null
-        panelContentView = null
         panelView = null
         panelHandleParams = null
         panelParams = null

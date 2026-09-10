@@ -14,12 +14,14 @@ import `fun`.kirari.hanako.core.model.ProcessingResult
 import `fun`.kirari.hanako.solve.model.WorkflowTaskStatus
 import `fun`.kirari.hanako.core.model.loadHistoryBitmaps
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 
 internal class OverlayAnswerController(
     private val scope: CoroutineScope,
@@ -59,15 +61,9 @@ internal class OverlayAnswerController(
     fun regenerateCurrentResult() {
         val existingResult = uiState.value.result ?: return
         if (existingResult.automationAction != null || uiState.value.working) return
-        val bitmaps = existingResult.loadHistoryBitmaps()
-        val firstBitmap = bitmaps.firstOrNull()
-        if (firstBitmap == null) {
-            uiState.update { it.copy(error = "找不到原始截图，无法重新生成") }
-            return
-        }
+        // 同步置位，保证解码期间重复点击不会启动第二次重新生成。
         uiState.update {
             it.copy(
-                selectedBitmap = firstBitmap,
                 liveOcrText = "",
                 liveAnswerText = "",
                 error = null,
@@ -77,10 +73,20 @@ internal class OverlayAnswerController(
                 result = existingResult.copy(detail = "正在重新生成")
             )
         }
-        val handle = runCatching {
-            solveOperations.regenerate(uiState.value.settings, existingResult, bitmaps)
-        }.onFailure(::showStartFailure).getOrNull() ?: return
-        observe(handle)
+        scope.launch {
+            // 解码历史截图是磁盘 + 位图重活，不能在主线程做。
+            val bitmaps = withContext(Dispatchers.IO) { existingResult.loadHistoryBitmaps() }
+            val firstBitmap = bitmaps.firstOrNull()
+            if (firstBitmap == null) {
+                uiState.update { it.copy(error = "找不到原始截图，无法重新生成", working = false) }
+                return@launch
+            }
+            uiState.update { it.copy(selectedBitmap = firstBitmap) }
+            val handle = runCatching {
+                solveOperations.regenerate(uiState.value.settings, existingResult, bitmaps)
+            }.onFailure(::showStartFailure).getOrNull() ?: return@launch
+            observe(handle)
+        }
     }
 
     private fun observe(handle: SolveTaskHandle) {

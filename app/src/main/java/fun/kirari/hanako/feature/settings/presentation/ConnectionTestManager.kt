@@ -15,13 +15,6 @@ class ConnectionTestManager {
     val states: StateFlow<Map<String, ConnectionTestState>> = _states.asStateFlow()
 
     /**
-     * 获取指定提供方的测试状态。未测试过时返回 [ConnectionTestState] 默认值。
-     */
-    fun stateFor(providerId: String): ConnectionTestState {
-        return _states.value[providerId] ?: ConnectionTestState()
-    }
-
-    /**
      * 设置指定提供方的测试状态。
      */
     fun setState(providerId: String, state: ConnectionTestState) {
@@ -37,12 +30,5 @@ class ConnectionTestManager {
         _states.update { current ->
             current - providerId
         }
-    }
-
-    /**
-     * 重置所有提供方的测试状态。
-     */
-    fun resetAll() {
-        _states.value = emptyMap()
     }
 }

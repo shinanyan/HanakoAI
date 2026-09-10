@@ -12,6 +12,8 @@ import `fun`.kirari.hanako.core.model.loadHistoryBitmaps
 import `fun`.kirari.hanako.solve.model.ConversationIntent
 import `fun`.kirari.llm.core.ChatMessage
 import `fun`.kirari.llm.core.LlmEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class PreparedConversationTurn(
     val historyId: String,
@@ -149,7 +151,9 @@ internal class ConversationWorkflow(
             ProcessingRoute.MULTIMODAL_DIRECT -> "请直接基于图片内容完成任务。"
         }
         val images = if (result.route == ProcessingRoute.MULTIMODAL_DIRECT) {
-            result.loadHistoryBitmaps().map { it.toBase64Jpeg() }
+            withContext(Dispatchers.IO) {
+                result.loadHistoryBitmaps().map { it.toBase64Jpeg() }
+            }
         } else {
             emptyList()
         }

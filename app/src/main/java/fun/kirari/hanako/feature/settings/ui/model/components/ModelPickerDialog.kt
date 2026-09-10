@@ -43,16 +43,17 @@ import kotlinx.coroutines.CancellationException
 data class ModelPickerEntry(
     val id: String,
     val displayName: String = id,
-    val isFavorite: Boolean = false,
-    val isLocalOnly: Boolean = false
+    val isFavorite: Boolean = false
 )
 
 @Composable
 internal fun rememberModelPickerState(
     provider: ModelProviderConfig,
     trustAllHttpsCertificates: Boolean = false,
-    api: ProviderModelsApi = ProviderModelsApi()
+    api: ProviderModelsApi? = null
 ): ModelPickerState {
+    // 默认参数在调用点求值；这里兜底时必须 remember，否则每次重组都会新建 OkHttpClient。
+    val resolvedApi = remember(api) { api ?: ProviderModelsApi() }
     val sessionFavoriteOrder = remember(provider.id) { provider.favoriteModels.normalizedModelNames() }
     val localFavoriteModels = remember(provider.favoriteModels) {
         provider.favoriteModels.normalizedModelNames()
@@ -63,7 +64,7 @@ internal fun rememberModelPickerState(
     val catalog by produceState<ProviderCatalog?>(initialValue = null, provider.id, requestCancelled, trustAllHttpsCertificates) {
         if (!requestCancelled) {
             try {
-                value = api.getCatalog(provider, trustAllHttpsCertificates)
+                value = resolvedApi.getCatalog(provider, trustAllHttpsCertificates)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -147,7 +148,7 @@ internal fun ModelPickerDialog(
     onToggleFavorite: (String, Boolean) -> Unit,
     onCustomModelRequest: (String) -> Unit,
     trustAllHttpsCertificates: Boolean = false,
-    api: ProviderModelsApi = ProviderModelsApi()
+    api: ProviderModelsApi? = null
 ) {
     val pickerState = rememberModelPickerState(
         provider = provider,
@@ -358,8 +359,7 @@ private fun mergeModelEntries(
             result += ModelPickerEntry(
                 id = favorite,
                 displayName = favorite,
-                isFavorite = true,
-                isLocalOnly = true
+                isFavorite = true
             )
         }
     }
@@ -370,8 +370,7 @@ private fun mergeModelEntries(
             result += ModelPickerEntry(
                 id = model.id,
                 displayName = model.displayName,
-                isFavorite = visibleFavoriteSet.contains(key),
-                isLocalOnly = false
+                isFavorite = visibleFavoriteSet.contains(key)
             )
         } else if (visibleFavoriteSet.contains(key)) {
             val index = result.indexOfFirst { it.id.equals(model.id, ignoreCase = true) }

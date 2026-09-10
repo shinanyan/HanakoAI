@@ -59,11 +59,6 @@ class ProviderModelsApi(
         }
     }
 
-    suspend fun listModels(
-        provider: ProviderConfig,
-        trustAllHttpsCertificates: Boolean = false
-    ): List<RemoteModelOption> = getCatalog(provider, trustAllHttpsCertificates).models
-
     suspend fun testConnection(
         provider: ProviderConfig,
         trustAllHttpsCertificates: Boolean = false

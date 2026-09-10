@@ -26,7 +26,6 @@ internal enum class SearchSkipReason(val displayText: String) {
     AUTOMATION_DISABLED("自动模式未开启搜索"),
     API_KEY_MISSING("API Key 未配置"),
     API_URL_MISSING("API URL 未配置"),
-    LLM_NO_TOOL_CALL("模型未调用搜索工具"),
     LLM_NO_KEYWORDS("模型未提供搜索关键词"),
     SEARCH_NO_RESULTS("搜索无结果"),
     SEARCH_API_ERROR("搜索 API 错误")

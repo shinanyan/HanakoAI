@@ -31,7 +31,6 @@ import `fun`.kirari.hanako.core.model.ContentAnchor
 import `fun`.kirari.hanako.core.model.RichTextBlockKind
 import `fun`.kirari.hanako.core.model.QuotedFragment
 import `fun`.kirari.hanako.core.ui.richtext.MarkdownLatexText
-import `fun`.kirari.hanako.core.ui.richtext.RichTextBlock
 import `fun`.kirari.hanako.core.ui.richtext.extractRichTextBlocks
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -47,14 +46,17 @@ internal fun HistoryRenderedBlock.toQuotedFragment(): QuotedFragment = QuotedFra
 internal fun quotePreview(anchor: ContentAnchor): String {
     if (anchor.blockKind == RichTextBlockKind.DISPLAY_MATH) return "[公式]"
     val codePoints = anchor.rawMarkdown
-        .replace(Regex("[`*_#~]"), "")
-        .replace(Regex("\\s+"), " ")
+        .replace(QUOTE_MARKUP_PATTERN, "")
+        .replace(QUOTE_WHITESPACE_PATTERN, " ")
         .trim()
         .codePoints()
         .limit(3)
         .toArray()
     return buildString { codePoints.forEach(::appendCodePoint) }.ifBlank { "文本" }
 }
+
+private val QUOTE_MARKUP_PATTERN = Regex("[`*_#~]")
+private val QUOTE_WHITESPACE_PATTERN = Regex("\\s+")
 
 @Composable
 internal fun HistoryInteractiveMarkdown(

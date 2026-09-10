@@ -8,11 +8,9 @@ import `fun`.kirari.llm.core.LlmEvent
 import `fun`.kirari.llm.core.StreamRequest
 import `fun`.kirari.llm.core.ToolDef
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.json.Json
 
 internal class UnifiedLLMClient(
-    private val clientProvider: NetworkClientProvider = NetworkClientProvider(),
-    private val json: Json = Json { ignoreUnknownKeys = true }
+    private val clientProvider: NetworkClientProvider = NetworkClientProvider()
 ) {
     private val tag = "HanakoUnifiedLLM"
     private val coreClient = LlmClient(clientProvider, HanakoLlmLogger)

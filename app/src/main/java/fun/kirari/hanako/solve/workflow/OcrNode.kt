@@ -31,7 +31,7 @@ internal class OcrNode(
                     model = models.ocrModel,
                     systemPrompt = models.assistant.ocrPrompt,
                     userPrompt = "请执行 OCR。",
-                    imagesBase64 = listOf(bitmap.toBase64Jpeg()),
+                    imagesBase64 = listOf(withContext(Dispatchers.IO) { bitmap.toBase64Jpeg() }),
                     firstDeltaTimeoutMillis = models.firstDeltaTimeoutMillis,
                     trustAllHttpsCertificates = models.trustAllHttpsCertificates
                 )

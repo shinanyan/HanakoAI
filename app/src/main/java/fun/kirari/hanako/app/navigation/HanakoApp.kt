@@ -12,11 +12,9 @@ import `fun`.kirari.hanako.feature.settings.ui.model.ModelSelectionDialogState
 import `fun`.kirari.hanako.feature.settings.ui.model.ModelSelectionDialogs
 import `fun`.kirari.hanako.feature.settings.ui.model.ModelSettingsScreen
 import `fun`.kirari.hanako.feature.settings.presentation.ConnectionTestState
-import `fun`.kirari.hanako.core.data.ModelPurpose
 import `fun`.kirari.hanako.feature.history.presentation.HistoryDetailOperation
 import `fun`.kirari.hanako.feature.home.presentation.LocalScrollToTopController
 import `fun`.kirari.hanako.feature.home.presentation.rememberScrollToTopController
-import `fun`.kirari.hanako.feature.settings.ui.provider.GenericProviderDetailScreen
 import `fun`.kirari.hanako.feature.settings.ui.provider.ProviderDetailScreen
 import `fun`.kirari.hanako.feature.settings.ui.provider.ProviderSettingsScreen
 import `fun`.kirari.hanako.feature.settings.ui.search.WebSearchSettingsScreen
@@ -37,7 +35,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -64,7 +61,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +81,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import `fun`.kirari.hanako.app.HanakoApplication
 import `fun`.kirari.hanako.platform.capture.ScreenCaptureManager
 import `fun`.kirari.hanako.platform.capture.ScreenCaptureStartResult
@@ -111,11 +108,11 @@ import `fun`.kirari.hanako.core.ui.image.saveBitmapToPictures
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HanakoApp(viewModel: AppViewModel) {
-    val settings by viewModel.settings.collectAsState()
-    val debugEntries by AppDebugLogStore.entries.collectAsState()
-    val appUpdateState by viewModel.appUpdateState.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val debugEntries by AppDebugLogStore.entries.collectAsStateWithLifecycle()
+    val appUpdateState by viewModel.appUpdateState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val overlayEnabled by OverlayRuntimeState.running.collectAsState()
+    val overlayEnabled by OverlayRuntimeState.running.collectAsStateWithLifecycle()
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var hasNotificationPermission by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
@@ -352,7 +349,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                         )
                     }
                     composable(ROUTE_HANAKO_HISTORY) {
-                        val mergedHistory by viewModel.mergedHistory.collectAsState()
+                        val mergedHistory by viewModel.mergedHistory.collectAsStateWithLifecycle()
                         HistorySubScreen(
                             scrollRoute = ROUTE_HANAKO_HISTORY,
                             settings = settings,
@@ -374,7 +371,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                     }
                     composable(ROUTE_HANAKO_HISTORY_GROUP_DETAIL_PATTERN) { entry ->
                         val groupId = entry.arguments?.getString(ARG_GROUP_ID) ?: return@composable
-                        val mergedHistory by viewModel.mergedHistory.collectAsState()
+                        val mergedHistory by viewModel.mergedHistory.collectAsStateWithLifecycle()
                         var actionTargetId by remember { mutableStateOf<String?>(null) }
                         var groupPickerTargetIds by remember { mutableStateOf<Set<String>?>(null) }
                         var deleteTargetIds by remember { mutableStateOf<Set<String>?>(null) }
@@ -458,7 +455,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                     }
                     composable(ROUTE_HANAKO_HISTORY_DETAIL_PATTERN) { entry ->
                         val resultId = entry.arguments?.getString(ARG_HISTORY_ID)
-                        val detailStates by viewModel.historyDetailStates.collectAsState()
+                        val detailStates by viewModel.historyDetailStates.collectAsStateWithLifecycle()
                         val detailState = resultId?.let(detailStates::get)
                         val operation = detailState?.operation
                         val conversationModelPurpose = detailState?.conversationModelPurpose
@@ -504,7 +501,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                         val providerId = entry.arguments?.getString(ARG_PROVIDER_ID)
                         val provider = settings.availableProviders().firstOrNull { it.id == providerId }
                         if (provider != null) {
-                        val connectionTestStates by viewModel.connectionTestManager.states.collectAsState()
+                        val connectionTestStates by viewModel.connectionTestManager.states.collectAsStateWithLifecycle()
                         val connectionTestState = connectionTestStates[provider.id] ?: ConnectionTestState()
                         ProviderDetailScreen(
                             provider = provider,
@@ -533,7 +530,7 @@ fun HanakoApp(viewModel: AppViewModel) {
                         )
                     }
                     composable(ROUTE_SETTINGS_WEB_SEARCH) {
-                        val webSearchQuotaState by viewModel.webSearchQuotaState.collectAsState()
+                        val webSearchQuotaState by viewModel.webSearchQuotaState.collectAsStateWithLifecycle()
                         WebSearchSettingsScreen(
                             webSearchSettings = settings.webSearch,
                             webSearchQuotaState = webSearchQuotaState,

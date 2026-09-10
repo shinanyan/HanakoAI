@@ -174,18 +174,6 @@ fun ProcessingResult.latestAnswerText(): String {
     return displayedAnswerVersions().lastOrNull()?.text ?: answer
 }
 
-fun ProcessingResult.withAppendedAnswerVersion(newAnswer: String): ProcessingResult {
-    val existingVersions = displayedAnswerVersions().toMutableList()
-    if (newAnswer.isNotBlank()) existingVersions += AnswerVersion(newAnswer)
-    return copy(answer = newAnswer, answerVersions = existingVersions)
-}
-
-fun ProcessingResult.withMergedAnswerVersionsFrom(previous: ProcessingResult): ProcessingResult {
-    val mergedVersions = previous.displayedAnswerVersions().toMutableList()
-    answer.takeIf(String::isNotBlank)?.let { mergedVersions += AnswerVersion(it) }
-    return copy(answerVersions = mergedVersions)
-}
-
 fun FollowUpTurn.displayedAssistantVersions(): List<AnswerVersion> {
     return assistantVersions.ifEmpty {
         assistantText.takeIf(String::isNotBlank)?.let(::AnswerVersion)?.let(::listOf) ?: emptyList()

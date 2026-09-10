@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
@@ -100,6 +99,10 @@ fun HistoryDetailScreen(
             if (isEmpty()) result.screenshotBase64?.decodeHistoryBitmap()?.let(::add)
         }
     }
+    // 每次键入追问草稿都会重组本屏幕，这个集合不能跟着重算。
+    val underlinedBlockIds = remember(result.followUpTurns) {
+        result.followUpTurns.flatMap { it.quotedFragments }.map { it.anchor.blockId }.toSet()
+    }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var currentVersionIndex by remember(result.id, answerVersions.size) {
@@ -178,7 +181,7 @@ fun HistoryDetailScreen(
         onFollowUpDraftChange = { followUpDraft = it },
         draftQuotes = draftQuotes,
         highlightedBlockId = focusedBlock?.anchor?.blockId,
-        underlinedBlockIds = result.followUpTurns.flatMap { it.quotedFragments }.map { it.anchor.blockId }.toSet(),
+        underlinedBlockIds = underlinedBlockIds,
         onBlockFocused = {
             focusedBlock = it
             menuBlock = it

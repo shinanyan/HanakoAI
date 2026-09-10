@@ -15,6 +15,8 @@ import `fun`.kirari.hanako.solve.workflow.WorkflowContext
 import `fun`.kirari.hanako.solve.workflow.WorkflowNode
 import `fun`.kirari.llm.core.ChatMessage
 import `fun`.kirari.llm.core.LlmEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal class AnswerAgentNode(
     private val unifiedClient: UnifiedLLMClient,
@@ -41,7 +43,7 @@ internal class AnswerAgentNode(
         val basePrompt = input.ocrOutput?.let { "以下是 OCR 结果，请完成任务：\n${it.text}" }
             ?: "请直接基于图片内容完成任务。"
         val imagesBase64 = if (input.ocrOutput == null) {
-            input.capturedImages.bitmaps.map { it.toBase64Jpeg() }
+            withContext(Dispatchers.IO) { input.capturedImages.bitmaps.map { it.toBase64Jpeg() } }
         } else {
             emptyList()
         }

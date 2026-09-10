@@ -6,6 +6,8 @@ import `fun`.kirari.hanako.core.model.saveToHistoryFile
 import `fun`.kirari.hanako.solve.workflow.NodeResult
 import `fun`.kirari.hanako.solve.workflow.WorkflowContext
 import `fun`.kirari.hanako.solve.workflow.WorkflowNode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 internal class CapturePersistNode(
@@ -15,8 +17,10 @@ internal class CapturePersistNode(
 
     override suspend fun run(input: List<Bitmap>, ctx: WorkflowContext): NodeResult<CapturedImages> {
         val historyId = UUID.randomUUID().toString()
-        val screenshotPaths = input.mapIndexed { index, bitmap ->
-            bitmap.saveToHistoryFile(appContext, "${historyId}_$index")
+        val screenshotPaths = withContext(Dispatchers.IO) {
+            input.mapIndexed { index, bitmap ->
+                bitmap.saveToHistoryFile(appContext, "${historyId}_$index")
+            }
         }
         return NodeResult(
             output = CapturedImages(

@@ -53,9 +53,12 @@ internal class WorkflowContainer(
         titleSummaryService = titleSummaryService,
         scope = scope
     )
-    private val interruptedTaskReconciliation = scope.launch {
-        taskManager.reconcileInterruptedTasks()
+    init {
+        scope.launch {
+            taskManager.reconcileInterruptedTasks()
+        }
     }
+
     val operations = SolveOperations(
         pipeline = pipeline,
         taskManager = taskManager

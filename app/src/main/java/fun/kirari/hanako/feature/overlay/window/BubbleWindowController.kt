@@ -46,6 +46,8 @@ internal class BubbleWindowController(
     private var colorAnimator: ValueAnimator? = null
     private var currentParams: WindowManager.LayoutParams? = null
     private var countView: TextView? = null
+    private var pendingLongPress: Runnable? = null
+    private var pendingDoubleTap: Runnable? = null
 
     fun show() {
         if (bubbleView != null) return
@@ -195,7 +197,14 @@ internal class BubbleWindowController(
     fun destroy() {
         colorAnimator?.cancel()
         colorAnimator = null
-        bubbleView?.let { runCatching { windowManager.removeView(it) } }
+        bubbleView?.let { view ->
+            // 手势回调是 post 到气泡 View 上的，销毁时必须撤销，否则会在移除后触发回调。
+            pendingLongPress?.let(view::removeCallbacks)
+            pendingDoubleTap?.let(view::removeCallbacks)
+            runCatching { windowManager.removeView(view) }
+        }
+        pendingLongPress = null
+        pendingDoubleTap = null
         bubbleView = null
         surfaceView = null
         iconView = null
@@ -252,6 +261,7 @@ internal class BubbleWindowController(
                     onLongPress()
                 }
             }
+            pendingLongPress = longPressRunnable
 
             val doubleTapTimeoutRunnable = Runnable {
                 if (!doubleTapDetected && !longPressTriggered) {
@@ -259,6 +269,7 @@ internal class BubbleWindowController(
                 }
                 doubleTapDetected = false
             }
+            pendingDoubleTap = doubleTapTimeoutRunnable
 
             setOnTouchListener { _: View, event: MotionEvent ->
                 when (event.actionMasked) {

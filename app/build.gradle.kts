@@ -19,21 +19,6 @@ fun gradleBooleanProperty(name: String, envName: String? = null, default: Boolea
     return raw.equals("true", ignoreCase = true)
 }
 
-fun quoteBuildConfig(value: String): String = buildString {
-    append('"')
-    value.forEach { ch ->
-        when (ch) {
-            '\\' -> append("\\\\")
-            '"' -> append("\\\"")
-            '\n' -> append("\\n")
-            '\r' -> append("\\r")
-            '\t' -> append("\\t")
-            else -> append(ch)
-        }
-    }
-    append('"')
-}
-
 val showDebugLogs = gradleBooleanProperty(
     name = "hanakoShowDebugLogs",
     envName = "HANAKO_SHOW_DEBUG_LOGS",
